@@ -22,14 +22,43 @@ function setupResults(debug, keepOutput) {
 	// remove styles
 	scriptarea.innerHTML = scriptarea.innerText
 
-	if(!keepOutput) outputs.innerHTML = ""
+	if(!keepOutput) {
+		// clear outputs
+		var fc
+		while(fc = outputs.firstChild) {
+			elen.removeChild(fc)
+		}
+	}
 
-	stacks.innerHTML = ""
-	if(debug) {
+	var contents = stacks.getElementsByClassName('stack-content')
+	if(contents.length > 0) {
+		for(var i = 0; i < contents.length; i++) {
+			contents[i].textContent = ""
+		}
+
+		var shown = stacks.getElementsByClassName('show')
+		for(var i = 0; i < shown.length; i++) {
+			shown[i].classList.remove('list-group-item-primary')
+			shown[i].classList.remove('show')
+		}
+
+	} else {
 		for(var i in aheui.jong) {
 			var li = document.createElement("li")
 			li.className = 'list-group-item px-2 py-1 collapse'
-			li.innerHTML = '<span class="stack-title">' + (aheui.jong[i] || '_') + '</span>: <span class="stack-content"></span>'
+
+			var title = document.createElement("span")
+			title.className = 'stack-title'
+			title.textContent = aheui.jong[i] || '_'
+
+			var spacer = document.createTextNode(": ")
+
+			var content = document.createElement("span")
+			content.className = 'stack-content'
+
+			li.appendChild(title)
+			li.appendChild(spacer)
+			li.appendChild(content)
 			stacks.appendChild(li)
 		}
 	}
@@ -49,7 +78,7 @@ function buildDOMUpdater() {
 	var lastOutput = "", lastScript = "", lastStacks = [], lastStack = -1
 	return function updateDOM() {
 		if(output !== lastOutput) {
-			outputs.innerText = output
+			outputs.textContent = output
 			lastOutput = output
 		}
 
@@ -93,7 +122,7 @@ function buildDOMUpdater() {
 					if(equals) continue
 				}
 				var content = lis[i].getElementsByClassName("stack-content")[0]
-				content.innerText = stackContents[i].reduce((prev, e) => prev + ', ' + e, "").slice(2)
+				content.textContent = stackContents[i].reduce((prev, e) => prev + ', ' + e, "").slice(2)
 
 				// safe, stackContents[i] is not modified, it is replaced with a new array
 				lastStacks[i] = stackContents[i]
@@ -218,12 +247,12 @@ var runner
 byId("run").onclick = function() {
 	if(!runner) runner = initScript()
 	var batch = byId("batch")
-	batch.enabled = false
+	batch.disabled = true
 	runner.run(batch.value|0)
 }
 byId("stop").onclick = function() {
 	if(runner) runner.stop()
-	byId("batch").enabled = true
+	byId("batch").disabled = false
 }
 byId("step").onclick = function() {
 	if(!runner) runner = initScript()
@@ -232,7 +261,7 @@ byId("step").onclick = function() {
 byId("reset").onclick = function() {
 	if(runner) runner.reset()
 	else runner = initScript()
-	byId("batch").enabled = true
+	byId("batch").disabled = false
 }
 byId("debug").onchange = function() {
 	if(runner) {
