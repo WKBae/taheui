@@ -10,7 +10,7 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "test/test.sh"
+    "test": "test/snippets-standard.sh"
   },
   "repository": {
     "type": "git",
