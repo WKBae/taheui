@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>아희 실행기 | Aheui interpreter</title>
+	<script src="../../dist/aheuijs.min.js" charset="utf-8"></script>
+	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+</head>
+<body>
+	<div class="container my-2">
+		<h1 id="aheui-header" class="translate">_</h1>
+		<div class="row mt-3 align-items-center">
+			<div class="col-12 col-lg-8">
+				<div id="scriptarea" class="fixedwidth translate-ph" contentEditable="true" placeholder="_"></div>
+			</div>
+			<div class="col-12 col-lg-4">
+				<div class="row align-items-center">
+					<div class="col-12 col-lg-4 my-2">
+						<div class="row align-items-center">
+							<div class="col col-lg-12 my-1"><button id="run" class="btn btn-primary btn-block translate">_</button></div>
+							<div class="col col-lg-12 my-1"><button id="step" class="btn btn-outline-primary btn-block translate">_</button></div>
+							<div class="col col-lg-12 my-1"><button id="stop" class="btn btn-outline-info btn-block translate">_</button></div>
+							<div class="col col-lg-12 my-1"><button id="reset" class="btn btn-outline-danger btn-sm btn-block translate">_</button></div>
+						</div>
+					</div>
+					<div class="col-12 col-lg-8">
+						<div class="row align-items-center">
+							<div class="col-6 col-lg-12 my-0 my-md-2">
+								<div class="form-inline">
+									<label for="batch" class="form-control-label translate" data-translate="batch">_</label>
+									<input id="batch" class="form-control form-control-sm mx-2" type="number" min="0" step="1" value="50000">
+									<small class="form-text text-muted mt-0 translate" data-translate="batch-zero">_</small>
+								</div>
+							</div>
+							<div class="col-6 col-lg-12 my-0 my-md-2">
+								<div class="form-check">
+									<label class="form-check-label">
+										<input type="checkbox" class="form-check-input" id="debug" checked>
+										<span class="translate" data-translate="debug"></span>
+									</label>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="form-row my-3">
+			<div class="col-12 col-md">
+				<textarea id="inputs" class="fixedwidth translate-ph" placeholder="_"></textarea>
+			</div>
+			<div class="col-12 col-md mt-3 mt-md-0">
+				<textarea id="outputs" class="fixedwidth translate-ph" placeholder="_"></textarea>
+			</div>
+			<div class="col-12 col-md-2 ml-3 mt-3 mt-md-0" id="stack-container">
+				
+				<span id="stack" class="translate">_</span>
+				<ul id="stacks" class="list-group"></ul>
+			</div>
+		</div>
+
+		<a id="language" href="#">English version</a>
+	</div>
+
+	<script src="script.js"></script>
+	<script>
+		(function() {
+			var dictionary = {
+				'en': {
+					'aheui-header': "Aheui Interpreter",
+					'run': "Run",
+					'stop': "Stop",
+					'step': "Step",
+					'reset': "Reset",
+					'debug': "Show runtime informations",
+					'batch': "Batch size",
+					'batch-zero': "0 for synchronous run",
+					'scriptarea': "Aheui script",
+					'inputs': "Input",
+					'outputs': "Output",
+					'stack': "Stack content:"
+				},
+				'ko': {
+					'aheui-header': "아희 코드 실행기",
+					'run': "실행",
+					'stop': "중지",
+					'step': "한 단계",
+					'reset': "초기화",
+					'debug': "실행 정보 표시",
+					'batch': "배치 크기",
+					'batch-zero': "0 = 동기 실행",
+					'scriptarea': "아희 코드",
+					'inputs': "입력",
+					'outputs': "출력",
+					'stack': "스택 내용:"
+				}
+			}
+			function showLanguage(lang) {
+				var trans = document.getElementsByClassName("translate")
+				for(var elem of trans) {
+					elem.innerHTML = dictionary[lang][elem.id || elem.getAttribute('data-translate')]
+				}
+				var transPh = document.getElementsByClassName("translate-ph")
+				for(var elem of transPh) {
+					elem.setAttribute('placeholder', dictionary[lang][elem.id || elem.getAttribute('data-translate')])
+				}
+			}
+
+			var currentLanguage = 'ko'
+			document.getElementById('language').onclick = function(e) {
+				e.preventDefault()
+
+				if(currentLanguage == 'ko') {
+					currentLanguage = 'en'
+					this.innerText = "한국어판"
+				} else {
+					currentLanguage = 'ko'
+					this.innerText = "English version"
+				}
+				showLanguage(currentLanguage)
+			}
+
+			showLanguage('ko')
+		})()
+	</script>
+</body>
+</html>

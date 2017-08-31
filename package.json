@@ -1,0 +1,29 @@
+{
+  "name": "aheuijs",
+  "version": "0.1.0",
+  "description": "Javascript Aheui interpreter",
+  "main": "aheuijs.js",
+  "bin": {
+    "aheuijs": "aheuijs.js"
+  },
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "test/test.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WKBae/aheuijs.git"
+  },
+  "author": "WKBae <williambae1@gmail.com> (https://github.com/WKBae)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/WKBae/aheuijs/issues"
+  },
+  "homepage": "https://github.com/WKBae/aheuijs#readme",
+  "devDependencies": {
+    "google-closure-compiler": "^20170806.0.0",
+    "gulp": "^3.9.1"
+  }
+}
