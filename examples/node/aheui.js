@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs'),
-	aheui = require('./aheuijs')
+	aheui = require('../../dist/aheuijs.min')
 
 var script = ""
 var input = ""
@@ -49,7 +49,7 @@ process.stdin.on('end', () => {
 	startScript()
 })
 
-
+// TODO rewrite input functions, to use callback
 const numberReg = /^\s*?(-?[0-9]+)/
 function Input(stream, buffer) {
 	var that = this
@@ -59,11 +59,20 @@ function Input(stream, buffer) {
 
 	if(!stream) stream = process.stdin
 	that.stream = stream
-	that.stream.on('data', (chunk) => {
-		that.buffer += chunk
+	
+	that.stream.on('readable', () => {
+		const chunk = that.stream.read()
+		if (chunk !== null) {
+			that.buffer += chunk
+		}
 	}).on('end', () => {
 		that.finished = true
 	})
+	
+	var read = that.stream.read()
+	if(read !== null) {
+		that.buffer += read
+	}
 }
 Input.prototype.readInt = function() {
 	var mat = this.buffer.match(numberReg)
@@ -113,7 +122,9 @@ function setupScript(scr, lastInput) {
 		},
 		'event': {
 			'reset': () => {},
+			'start': () => {},
 			'step': () => {},
+			'stop': () => {},
 			'end': (ah) => process.exit(ah.exitCode)
 		}
 	})
