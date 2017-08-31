@@ -36,7 +36,7 @@
 								<div class="form-check">
 									<label class="form-check-label">
 										<input type="checkbox" class="form-check-input" id="debug" checked>
-										<span class="translate" data-translate="debug"></span>
+										<span class="translate" data-translate="debug">_</span>
 									</label>
 								</div>
 							</div>
@@ -48,6 +48,12 @@
 
 		<div class="form-row my-3">
 			<div class="col-12 col-md">
+				<div class="form-check">
+					<label class="form-check-label">
+						<input type="checkbox" class="form-check-input" id="input-text" checked>
+						<span class="translate" data-translate="input-text">_</span>
+					</label>
+				</div>
 				<textarea id="inputs" class="fixedwidth translate-ph" placeholder="_"></textarea>
 			</div>
 			<div class="col-12 col-md mt-3 mt-md-0">
@@ -77,6 +83,7 @@
 					'batch': "Batch size",
 					'batch-zero': "0 for synchronous run",
 					'scriptarea': "Aheui script",
+					'input-text': "Input from text",
 					'inputs': "Input",
 					'outputs': "Output",
 					'stack': "Stack content:"
@@ -91,6 +98,7 @@
 					'batch': "배치 크기",
 					'batch-zero': "0 = 동기 실행",
 					'scriptarea': "아희 코드",
+					'input-text': "텍스트로 입력",
 					'inputs': "입력",
 					'outputs': "출력",
 					'stack': "스택 내용:"

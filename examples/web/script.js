@@ -214,6 +214,45 @@ function setCallbacks(script, debug) {
 }
 
 var updateTimer = 0
+function setInput(script, inText) {
+	if(inText) {
+		const numberReg = /^\s*?(-?[0-9]+)/
+		const inputs = byId('inputs')
+		var position = 0 // TODO rework on event system, should listen to reset event to rewind position
+		script.setCallbacks({
+			'input': {
+				'integer': () =>  {
+					var text = inputs.value
+					var mat = text.substring(position).match(numberReg)
+					if(!mat) {
+						return -1
+					} else {
+						position += mat[0].length
+						return mat[1]|0
+					}
+				},
+				'character': () => {
+					var text = inputs.value
+					if(position >= text.length) {
+						return -1
+					} else {
+						var char = text.charAt(position)
+						position++
+						return char
+					}
+				}
+			}
+		})
+	} else {
+		script.setCallbacks({
+			'input': {
+				'integer': () => prompt("정수를 입력해주세요.") | 0,
+				'character': () => prompt("문자를 입력해주세요.")
+				}
+			}
+		})
+	}
+}
 function initScript() {
 	var area = byId("scriptarea")
 	var code = area.innerText
@@ -223,6 +262,9 @@ function initScript() {
 	const debug = byId("debug").checked
 	setupResults(debug)
 	setCallbacks(script, debug)
+
+	setInput(script, byId("input-text").checked)
+
 	if(window.requestAnimationFrame) {
 		if(updateTimer) window.cancelAnimationFrame(updateTimer)
 		updateDOM = buildDOMUpdater()
@@ -269,6 +311,12 @@ byId("debug").onchange = function() {
 		setCallbacks(runner, this.checked)
 	}
 	byId('stack-container').style.display = this.checked? "" : "none"
+}
+byId("input-text").onchange = function() {
+	byId('inputs').disabled = !this.checked
+	if(runner) {
+		setInput(runner, this.checked)
+	}
 }
 byId("scriptarea").oninput = function() {
 	if(runner) {
