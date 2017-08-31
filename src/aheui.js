@@ -211,7 +211,7 @@
 			/** @type {string} */
 			this.script = script
 
-			/** @export {!Array<Stack>} */
+			/** @type {!Array<Stack>} */
 			this.stacks = []
 			cJong.forEach((c, i) => {
 				if(c === 'ㅇ') that.stacks[i] = new Queue()
