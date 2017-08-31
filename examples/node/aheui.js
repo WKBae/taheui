@@ -96,7 +96,15 @@ Input.prototype.readInt = function() {
 }
 Input.prototype.readChar = function() {
 	if(this.buffer.length > 0) {
-		var char = this.buffer.charAt(0)
+		var char = this.buffer.charCodeAt(0)
+		// unicode surrogate pair(https://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs)
+		if(this.buffer.length > 1 && 0xD800 <= char && char <= 0xDBFF) {
+			var additional = this.buffer.charCodeAt(1)
+			if(0xDC00 <= additional && additional <= 0xDFFF) {
+				char = (char - 0xD800) * 0x400 + additional - 0xDC00 + 0x10000
+				this.buffer = this.buffer.slice(1)
+			}// else unknown, just let go
+		}
 		this.buffer = this.buffer.slice(1)
 		return char
 	} else if(this.finished) {

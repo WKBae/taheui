@@ -236,7 +236,15 @@ function setInput(script, inText) {
 					if(position >= text.length) {
 						return -1
 					} else {
-						var char = text.charAt(position)
+						var char = text.charCodeAt(position)
+						// unicode surrogate pair(https://mathiasbynens.be/notes/javascript-encoding#surrogate-pairs)
+						if(position + 1 < text.length && 0xD800 <= char && char <= 0xDBFF) {
+							var additional = text.charCodeAt(position + 1)
+							if(0xDC00 <= additional && additional <= 0xDFFF) {
+								char = (char - 0xD800) * 0x400 + additional - 0xDC00 + 0x10000
+								position++
+							}// else unknown, just let go
+						}
 						position++
 						return char
 					}
@@ -247,7 +255,20 @@ function setInput(script, inText) {
 		script.setCallbacks({
 			'input': {
 				'integer': () => prompt("정수를 입력해주세요.") | 0,
-				'character': () => prompt("문자를 입력해주세요.")
+				'character': () => {
+					var str = prompt("문자를 입력해주세요.")
+					if(str.length > 0) {
+						var char = str.charCodeAt(0)
+						if(str.length > 1 && 0xD800 <= char && char <= 0xDBFF) {
+							var additional = str.charCodeAt(1)
+							if(0xDC00 <= additional && additional <= 0xDFFF) {
+								char = (char - 0xD800) * 0x400 + additional - 0xDC00 + 0x10000
+							}// else unknown, just let go
+						}
+						return char
+					} else {
+						return -1
+					}
 				}
 			}
 		})

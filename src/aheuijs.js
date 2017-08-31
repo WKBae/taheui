@@ -108,7 +108,14 @@
 							if(argument === 21 /* ㅇ */) {
 								that.callbacks.output.integer(that, result)
 							} else if(argument === 27 /* ㅎ */) {
-								that.callbacks.output.character(that, String.fromCharCode(result))
+								var char
+								if(result <= 0xFFFF || result > 0x10FFFF) {
+									char = String.fromCharCode(result)
+								} else { // build surrogate pair
+									result -= 0x10000
+									char = String.fromCharCode((result >> 10) + 0xD800, (result % 0x400) + 0xDC00)
+								}
+								that.callbacks.output.character(that, char)
 							}
 						}),
 			/* ㅂ */ new Op((stack, argument) => {
