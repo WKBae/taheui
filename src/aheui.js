@@ -17,365 +17,554 @@
 	}
 
 	var aheui = (function() {
-		const STACK_EMPTY = "STACK EMPTY"
 
-		function Op(argCount, operation, handler) {
-			if(typeof argCount === 'function') {
-				this.run = argCount; // run(function(stack)) = argCount(stack)
-			} else {
-				this.count = argCount
-				this.operation = operation
-				this.handler = handler || ((stack, result, argument) => stack.push(result))
+		/**
+		 * @private
+		 * The exception identifying that the stack is empty.
+		 */
+		class StackEmptyException {
+
+		}
+
+		/**
+		 * Single stack storing numbers.
+		 */
+		class Stack {
+			constructor() {
+				/**
+				 * @type {!Array<number>}
+				 * @protected
+				 */
+				this._items = []
+			}
+
+			get length() {
+				return this._items.length
+			}
+
+			/**
+			 * Push a number into the stack.
+			 * @param {number} value
+			 */
+			push(value) {
+				this._items.push(value)
+			}
+			/**
+			 * Pop a number from the stack. Throws StackEmptyException if the stack is empty.
+			 * @return {number} Popped value
+			 * @throws {StackEmptyException}
+			 */
+			pop() {
+				var res = this._items.pop()
+				if(res === undefined) {
+					throw new StackEmptyException()
+				}
+				return res
 			}
 		}
-		Op.prototype.run = function(stack, argument) {
-			var args = []
-			for(var i = 0; i < this.count; i++) {
-				try {
-					args.push(stack.pop())
-				} catch (e) {
-					for(var j = i - 1; j >= 0; j--) {
-						stack.push(args.pop())
+
+		class Queue extends Stack {
+			/**
+			 * Pulls a number from the queue. Throws StackEmptyException if the queue is empty
+			 * @return {number} Pulled value
+			 * @throws {StackEmptyException}
+			 */
+			pop() {
+				var res = this._items.shift()
+				if(res === undefined) {
+					throw new StackEmptyException()
+				}
+				return res
+			}
+			/**
+			 * Appends the value to the front of the queue, unlike push() which adds to the last.
+			 * @param {number} value
+			 */
+			append(value) {
+				this._items.unshift(value)
+			}
+		}
+
+		/**
+		 * Interface of various operations
+		 */
+		class Operation {
+			/**
+			 * Initialize the operation. Happens once when the script is loaded.
+			 */
+			constructor() {}
+			/**
+			 * Performs the operation based on the state (of a stack)
+			 * @param {Stack} stack Currently selected Stack instance
+			 * @param {number} argument Integer given in the instruction
+			 */
+			run(stack, argument) {}
+		}
+		/**
+		 * Operation which just calls the function given.
+		 */
+		class RawOperation extends Operation {
+			/**
+			 * Initialize with the function to be called.
+			 * @param {!function(Stack, number)} operation
+			 */
+			constructor(operation) {
+				super()
+				/** @private {function(Stack, number)} */
+				this._operation = operation
+			}
+			
+			run(stack, argument) {
+				this._operation(stack, argument)
+			}
+		}
+
+		/**
+		 * Utility operation which pops certain amount of values from stack and process them.
+		 */
+		class PopOperation extends Operation {
+			/**
+			 * Initializes the PopOperation
+			 * @param {number} count Number of the items to be popped
+			 * @param {!function(...number)} operation Operation to be performed on the popped items
+			 * @param {function(Stack, ?, number)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
+			 */
+			constructor(count, operation, resultHandler) {
+				super()
+				/** @private {number} */
+				this._count = count
+				/** @private {function(...number)} */
+				this._operation = operation
+				/** @private {function(Stack, ?, number)} */
+				this._handler = resultHandler || ((stack, result, argument) => stack.push(result))
+			}
+			run(stack, argument) {
+				/** @type {Array<number>} */
+				var args = []
+				for(var i = 0; i < this._count; i++) {
+					try {
+						args.push(stack.pop())
+					} catch (e) {
+						for(var j = i - 1; j >= 0; j--) {
+							stack.push(args.pop())
+						}
+						throw e
 					}
-					throw e
 				}
+				args.reverse()
+				this._handler(stack, this._operation.apply(this, args), argument)
 			}
-			args.reverse()
-			this.handler(stack, this.operation.apply(this, args), argument)
 		}
-		const NO_OP = new Op(() => {})
 
-		function Stack() {
-			this.items = []
-		}
-		Stack.prototype.push = function(value) { return this.items.push(value) }
-		Stack.prototype.pop = function() {
-			var res = this.items.pop()
-			if(res === undefined) {
-				throw STACK_EMPTY
+		class Cell {
+			/**
+			 * Builds a cell with the given character
+			 * @param {string|!Array<number>} char Character, parsed or not, representing a cell
+			 * @param {!Array<Operation>} operations List of the operations per each 'Choseong'
+			 */
+			constructor(char, operations) {
+				if(typeof char === 'string') char = parseChar(char)
+				/** @private {Operation} */
+				this._op = operations[char[0]]
+				/** @private {number} */
+				this._dir = char[1]
+				/** @private {number} */
+				this._argument = char[2]
 			}
-			return res
-		}
-		function Queue() {
-			this.items = []
-		}
-		Queue.prototype.push = function(value) { return this.items.push(value) }
-		Queue.prototype.pop = function() {
-			var res = this.items.shift()
-			if(res === undefined) {
-				throw STACK_EMPTY
-			}
-			return res
-		}
-		Queue.prototype.append = function(value) { return this.items.unshift(value) }
 
-		function Cell(operations, char) {
-			this.op = operations[char[0]]
-			this.dir = char[1]
-			this.argument = char[2]
-		}
-		Cell.prototype.run = function(aheui) {
-			aheui._updateDirection(this.dir)
-			try {
-				this.op.run(aheui.stacks[aheui.currentStack], this.argument)
-			} catch (e) {
-				if(e === STACK_EMPTY) {
-					aheui._updateDirection(19 /* ㅢ, reverse */)
-				} else {
-					throw e
+			/** Execute the cell, performs operation execution, direction update, moving the plane
+			 * @param {!Aheui} aheui
+			 */
+			run(aheui) {
+				aheui._updateDirection(this._dir)
+				try {
+					this._op.run(aheui.stacks[aheui.currentStack], this._argument)
+				} catch (e) {
+					if(e instanceof StackEmptyException) {
+						aheui._updateDirection(19 /* ㅢ, reverse */)
+					} else {
+						throw e
+					}
 				}
+				aheui._followDirection()
 			}
-			aheui._followDirection()
+
+			/**
+			 * Parse a Korean character to the array of [Choseong(number), Jungseong(number), Jongseong(number)]
+			 * Any non-Korean or not-complete characters are treated as "애", a no-op character in Aheui
+			 * @param {string|number} c A string(only the first one is used) or a number representing the character code
+			 * @return {!Array<number>}
+			 */
+			static parseChar(c) {
+				if(c < 0xAC00 || c > 0xD7A3) return [11, 1, 0] // default, no-op character
+				c -= 0xAC00
+				return [c/28/21 | 0, (c/28 | 0) % 21, c % 28]
+			}
 		}
+
+		/** @type {!Operation} */
+		const NO_OP = new Operation()
+		/** @type {!Cell} */
 		const EMPTY_CELL = new Cell([NO_OP], [0, 1, 0])
 
-		function Aheui(script) {
-			var that = this
+		class Aheui {
+			constructor(script) {
+				var that = this
 
-			that.script = script
+				/** @type {string} */
+				this.script = script
 
-			that.reset(true)
+				/** @export {!Array<Stack>} */
+				this.stacks = []
+				cJong.forEach((c, i) => {
+					if(c === 'ㅇ') that.stacks[i] = new Queue()
+					else that.stacks[i] = new Stack()
+				})
 
-			var operations = [
-			/* ㄱ */ NO_OP,
-			/* ㄲ */ NO_OP,
-			/* ㄴ */ new Op(2, (a, b) => a / b |0),
-			/* ㄷ */ new Op(2, (a, b) => a + b),
-			/* ㄸ */ new Op(2, (a, b) => a * b),
-			/* ㄹ */ new Op(2, (a, b) => a % b),
-			/* ㅁ */ new Op(1, (a) => a,
-						(stack, result, argument) => {
-							if(argument === 21 /* ㅇ */) {
-								that.callbacks.output.integer(that, result)
-							} else if(argument === 27 /* ㅎ */) {
-								var char
-								if(result <= 0xFFFF || result > 0x10FFFF) {
-									char = String.fromCharCode(result)
-								} else { // build surrogate pair
-									result -= 0x10000
-									char = String.fromCharCode((result >> 10) + 0xD800, (result % 0x400) + 0xDC00)
+				/** @type {number} */
+				this.currentStack = 0
+				/** @type {?number} */
+				this.exitCode = null
+				/** @type {number} */
+				this.stepCount = 0
+				/** @type {boolean} */
+				this.running = false
+				/** @private {?number} */
+				this._interval = 0
+
+				/** @type {number} */
+				this.x = 0
+				/** @type {number} */
+				this.y = 0
+
+				/** @type {number} */
+				this.dx = 0
+				/** @type {number} */
+				this.dy = 1
+
+				var operations = [
+				/* ㄱ */ NO_OP,
+				/* ㄲ */ NO_OP,
+				/* ㄴ */ new PopOperation(2, (a, b) => a / b |0),
+				/* ㄷ */ new PopOperation(2, (a, b) => a + b),
+				/* ㄸ */ new PopOperation(2, (a, b) => a * b),
+				/* ㄹ */ new PopOperation(2, (a, b) => a % b),
+				/* ㅁ */ new PopOperation(1, (a) => a,
+							(stack, result, argument) => {
+								if(argument === 21 /* ㅇ */) {
+									that.callbacks.output.integer(that, result)
+								} else if(argument === 27 /* ㅎ */) {
+									var char
+									if(result <= 0xFFFF || result > 0x10FFFF) {
+										char = String.fromCharCode(result)
+									} else { // build surrogate pair
+										result -= 0x10000
+										char = String.fromCharCode((result >> 10) + 0xD800, (result % 0x400) + 0xDC00)
+									}
+									that.callbacks.output.character(that, char)
 								}
-								that.callbacks.output.character(that, char)
+							}),
+				/* ㅂ */ new RawOperation((stack, argument) => {
+								if(argument === 21 /* ㅇ */) {
+									stack.push(that.callbacks.input.integer(that))
+								} else if(argument === 27 /* ㅎ */) {
+									var char = that.callbacks.input.character(that)
+									stack.push(typeof char === 'string'? char.charCodeAt(0) : char)
+								} else {
+									stack.push(jongCount[argument])
+								}
+							}),
+				/* ㅃ */ new PopOperation(1, (a) => a,
+							(stack, a) => {
+								if(stack instanceof Queue) {
+									stack.append(a)
+									stack.append(a)
+								} else {
+									stack.push(a)
+									stack.push(a)
+								}
+							}),
+				/* ㅅ */ new RawOperation((stack, argument) => {
+								that.currentStack = argument
+							}),
+				/* ㅆ */ new PopOperation(1, (a) => a,
+							(stack, result, argument) => {
+								that.stacks[argument].push(result)
+							}),
+				/* ㅇ */ NO_OP,
+				/* ㅈ */ new PopOperation(2, (a, b) => a >= b? 1 : 0),
+				/* ㅉ */ NO_OP,
+				/* ㅊ */ new PopOperation(1, (a) => a != 0,
+							(stack, result) => {
+								if(!result) {
+									that.dx = -that.dx
+									that.dy = -that.dy
+								}
+							}),
+				/* ㅋ */ NO_OP,
+				/* ㅌ */ new PopOperation(2, (a, b) => a - b),
+				/* ㅍ */ new PopOperation(2, (a, b) => [b, a],
+							(stack, result) => {
+								if(stack instanceof Queue) {
+									stack.append(result[0])
+									stack.append(result[1])
+								} else {
+									stack.push(result[0])
+									stack.push(result[1])
+								}
+							}),
+				/* ㅎ */ new RawOperation((stack) => {
+							var res
+							try {
+								res = stack.pop()
+							} catch (e) {
+								res = 0
 							}
-						}),
-			/* ㅂ */ new Op((stack, argument) => {
-							if(argument === 21 /* ㅇ */) {
-								stack.push(that.callbacks.input.integer(that))
-							} else if(argument === 27 /* ㅎ */) {
-								var char = that.callbacks.input.character(that)
-								stack.push(typeof char === 'string'? char.charCodeAt(0) : char)
-							} else {
-								stack.push(jongCount[argument])
-							}
-						}),
-			/* ㅃ */ new Op(1, (a) => a,
-						(stack, a) => {
-							if(stack instanceof Queue) {
-								stack.append(a)
-								stack.append(a)
-							} else {
-								stack.push(a)
-								stack.push(a)
-							}
-						}),
-			/* ㅅ */ new Op((stack, argument) => {
-							that.currentStack = argument
-						}),
-			/* ㅆ */ new Op(1, (a) => a,
-						(stack, result, argument) => {
-							that.stacks[argument].push(result)
-						}),
-			/* ㅇ */ NO_OP,
-			/* ㅈ */ new Op(2, (a, b) => a >= b? 1 : 0),
-			/* ㅉ */ NO_OP,
-			/* ㅊ */ new Op(1, (a) => a != 0,
-						(stack, result) => {
-							if(!result) {
-								that.dx = -that.dx
-								that.dy = -that.dy
-							}
-						}),
-			/* ㅋ */ NO_OP,
-			/* ㅌ */ new Op(2, (a, b) => a - b),
-			/* ㅍ */ new Op(2, (a, b) => [b, a],
-						(stack, result) => {
-							if(stack instanceof Queue) {
-								stack.append(result[0])
-								stack.append(result[1])
-							} else {
-								stack.push(result[0])
-								stack.push(result[1])
-							}
-						}),
-			/* ㅎ */ new Op((stack) => {
-						var res
-						try {
-							res = stack.pop()
-						} catch (e) {
-							res = 0
-						}
-						that.exitCode = res
-					})
-			]
+							that.exitCode = res
+						})
+				]
 
-			var lines = that.script.split(/\r?\n/)
-			that.plane = []
-			lines.forEach((line, i) => {
-				that.plane[i] = []
-				for(var j = 0; j < line.length; j++) {
-					that.plane[i][j] = new Cell(operations, parseChar(line.charCodeAt(j)))
-				}
-			})
+				var lines = this.script.split(/\r?\n/)
+				/** @type {Array<Array<Cell>>} */
+				this.plane = []
+				lines.forEach((line, i) => {
+					that.plane[i] = []
+					for(var j = 0; j < line.length; j++) {
+						that.plane[i][j] = new Cell(operations, parseChar(line.charCodeAt(j)))
+					}
+				})
 
-			that.callbacks = {
-				'input': {
-					'integer': () => prompt("정수를 입력해주세요.") | 0,
-					'character': () => prompt("문자를 입력해주세요.")
-				},
-				'output': {
-					'integer': (ah, int) => alert(int),
-					'character': (ah, chr) => alert(chr)
-				},
-				'event': {
-					'reset': () => console.log("[Aheui] Resetted"),
-					'start': () => console.log("[Aheui] Run started"),
-					'step': (ah) => console.log("[Aheui] Step# " + ah.stepCount),
-					'stop': () => console.log("[Aheui] Run stopped"),
-					'end': (ah) => console.log("[Aheui] Run finished with code:", ah.exitCode)
-				}
-			}
-		}
-		Aheui.prototype.setCallbacks = function(cbObj) {
-			(function recur(callback, cbObj) {
-				for(var i in cbObj) {
-					if(callback.hasOwnProperty(i)) {
-						if(typeof cbObj[i] === 'object') {
-							recur(callback[i], cbObj[i])
-						} else if(typeof cbObj[i] === 'function') {
-							callback[i] = cbObj[i]
-						}
+				/** @type {Object} */
+				this.callbacks = {
+					'input': {
+						'integer': () => prompt("정수를 입력해주세요.") | 0,
+						'character': () => prompt("문자를 입력해주세요.")
+					},
+					'output': {
+						'integer': (ah, int) => alert(int),
+						'character': (ah, chr) => alert(chr)
+					},
+					'event': {
+						'reset': () => console.log("[Aheui] Resetted"),
+						'start': () => console.log("[Aheui] Run started"),
+						'step': (ah) => console.log("[Aheui] Step# " + ah.stepCount),
+						'stop': () => console.log("[Aheui] Run stopped"),
+						'end': (ah) => console.log("[Aheui] Run finished with code:", ah.exitCode)
 					}
 				}
-			})(this.callbacks, cbObj)
-		}
-		Aheui.prototype.reset = function(_suppressEvent) {
-			var that = this
-
-			that.stacks = {}
-			cJong.forEach((c, i) => {
-				if(c === 'ㅇ') that.stacks[i] = new Queue()
-				else that.stacks[i] = new Stack()
-			})
-
-			that.currentStack = 0
-			that.exitCode = null
-			that.stepCount = 0
-			that.running = false
-			that._interval = 0
-
-			that.x = 0
-			that.y = 0
-
-			that.dx = 0
-			that.dy = 1
-
-			if(!_suppressEvent) {
-				that.callbacks.event.reset(that)
 			}
-		}
-		Aheui.prototype.step = function() {
-			if(this.exitCode !== null) return
-			if(!this.running) {
-				this.callbacks.event.start(this)
-			}
-			if(this.plane[this.y] && this.plane[this.y][this.x])
-				this.plane[this.y][this.x].run(this)
-			else
-				EMPTY_CELL.run(this)
-			this.stepCount++
-			this.callbacks.event.step(this)
-			if(!this.running) {
-				if(this.exitCode === null) {
-					this.callbacks.event.stop(this)
-				} else {
-					this.callbacks.event.end(this)
-				}
-			}
-		}
-		Aheui.prototype.run = function(batchSize) {
-			var that = this
-			if(that.running) return
-			that.running = true
 
-			that.callbacks.event.start(that)
+			/**
+			 * Registers callbacks to the script.
+			 * Note that, at this moment, only one callback can be registered.
+			 * @param {Object} cbObj
+			 */
+			setCallbacks(cbObj) {
+				(function recur(callback, cbObj) {
+					for(var i in cbObj) {
+						if(callback.hasOwnProperty(i)) {
+							if(typeof cbObj[i] === 'object') {
+								recur(callback[i], cbObj[i])
+							} else if(typeof cbObj[i] === 'function') {
+								callback[i] = cbObj[i]
+							}
+						}
+					}
+				})(this.callbacks, cbObj)
+			}
 
-			if(typeof batchSize === 'number' && batchSize > 0) {
-				that._batch(batchSize)
-			} else if(batchSize === 0) {
-				while(/*that.running &&*/ that.exitCode === null) {
-					that.step()
-				}
+			/**
+			 * @private
+			 * Initializes the local variables.
+			 */
+			_init() {
+				var that = this
+
+				that.stacks = []
+				cJong.forEach((c, i) => {
+					if(c === 'ㅇ') that.stacks[i] = new Queue()
+					else that.stacks[i] = new Stack()
+				})
+
+				that.currentStack = 0
+				that.exitCode = null
+				that.stepCount = 0
 				that.running = false
-				that.callbacks.event.end(that)
-			} else {
-				that._batch(10000)
+				that._interval = 0
+
+				that.x = 0
+				that.y = 0
+
+				that.dx = 0
+				that.dy = 1
 			}
-		}
-		/** @private */
-		Aheui.prototype._batch = function(count) {
-			var that = this
-			if(that.running) clearInterval(that._interval)
-			that._interval = setInterval(function runLoop() {
-				if(!that.running) return
 
-				for(var i = 0; i < count && that.exitCode === null; i++) {
-					that.step()
+			/**
+			 * Resets the execution status of the script
+			 */
+			reset() {
+				this._init()
+				this.callbacks.event.reset(this)
+			}
+
+			/**
+			 * Execute a single cell.
+			 */
+			step() {
+				if(this.exitCode !== null) return
+				if(!this.running) {
+					this.callbacks.event.start(this)
 				}
+				if(this.plane[this.y] && this.plane[this.y][this.x])
+					this.plane[this.y][this.x].run(this)
+				else
+					EMPTY_CELL.run(this)
+				this.stepCount++
+				this.callbacks.event.step(this)
+				if(!this.running) {
+					if(this.exitCode === null) {
+						this.callbacks.event.stop(this)
+					} else {
+						this.callbacks.event.end(this)
+					}
+				}
+			}
 
-				if(that.exitCode !== null) {
+			/**
+			 * Start execution from the last stopped position(or the beginning)
+			 * @param {number=} batchSize Size of the batch, the number of cells to execute per timer tick. 0 to run synchronously.
+			 */
+			run(batchSize) {
+				var that = this
+				if(that.running) return
+				that.running = true
+
+				that.callbacks.event.start(that)
+
+				if(typeof batchSize === 'number' && batchSize > 0) {
+					that._batch(batchSize)
+				} else if(batchSize === 0) {
+					while(/*that.running &&*/ that.exitCode === null) {
+						that.step()
+					}
 					that.running = false
-					clearInterval(that._interval)
-					that._interval = 0
 					that.callbacks.event.end(that)
+				} else {
+					that._batch(10000)
 				}
-			}, 0)
+			}
 
-		}
-		Aheui.prototype.stop = function() {
-			if(this.running) {
-				clearInterval(this._interval)
-				this.running = false
-				this.callbacks.event.stop(this)
+			/**
+			 * @private
+			 * Setup batches with the given count
+			 * @param {number} count Number of cell runs in a batch
+			 */
+			_batch(count) {
+				var that = this
+				if(that.running) clearInterval(that._interval)
+				that._interval = setInterval(function runLoop() {
+					if(!that.running) return
+
+					for(var i = 0; i < count && that.exitCode === null; i++) {
+						that.step()
+					}
+
+					if(that.exitCode !== null) {
+						that.running = false
+						clearInterval(that._interval)
+						that._interval = 0
+						that.callbacks.event.end(that)
+					}
+				}, 0)
+			}
+
+			/**
+			 * Stop the running script.
+			 * But, due to the nature of Javascript, a script running synchronously cannot be stopped.
+			 */
+			stop() {
+				if(this.running) {
+					clearInterval(this._interval)
+					this.running = false
+					this.callbacks.event.stop(this)
+				}
+			}
+
+			/**
+			 * @private
+			 * Update the direction vector according to the given Jungseong directive.
+			 * @param {number} jung 0-based Jungseong of an instruction
+			 */
+			_updateDirection(jung) {
+				switch(jung) {
+				case 0: /* ㅏ */
+					this.dx = 1
+					this.dy = 0
+					break
+				case 4: /* ㅓ */
+					this.dx = -1
+					this.dy = 0
+					break
+				case 13: /* ㅜ */
+					this.dx = 0
+					this.dy = 1
+					break
+				case 8: /* ㅗ */
+					this.dx = 0
+					this.dy = -1
+					break
+				
+				case 2: /* ㅑ */
+					this.dx = 2
+					this.dy = 0
+					break
+				case 6: /* ㅕ */
+					this.dx = -2
+					this.dy = 0
+					break
+				case 17: /* ㅠ */
+					this.dx = 0
+					this.dy = 2
+					break
+				case 12: /* ㅛ */
+					this.dx = 0
+					this.dy = -2
+					break
+
+				case 20: /* ㅣ */
+					this.dx = -this.dx
+					break;
+				case 18: /* ㅡ */
+					this.dy = -this.dy
+					break
+				case 19: /* ㅢ */
+					this.dx = -this.dx
+					this.dy = -this.dy
+					break
+				// default: break
+				}
+			}
+
+			/**
+			 * @private
+			 * Moves along the plane by the direction vector.
+			 */
+			_followDirection() {
+				this.x += this.dx
+				if(this.x < 0) {
+					this.x = this.plane[this.y].length - 1
+				} else if(this.x >= this.plane[this.y].length && this.dx !== 0) {
+					this.x = 0
+				}
+
+				this.y += this.dy
+				if(this.y < 0) {
+					this.y = this.plane.length - 1
+				} else if(this.y >= this.plane.length) {
+					this.y = 0
+				}
 			}
 		}
-		Aheui.prototype._updateDirection = function(jung) {
-			switch(jung) {
-			case 0: /* ㅏ */
-				this.dx = 1
-				this.dy = 0
-				break
-			case 4: /* ㅓ */
-				this.dx = -1
-				this.dy = 0
-				break
-			case 13: /* ㅜ */
-				this.dx = 0
-				this.dy = 1
-				break
-			case 8: /* ㅗ */
-				this.dx = 0
-				this.dy = -1
-				break
-			
-			case 2: /* ㅑ */
-				this.dx = 2
-				this.dy = 0
-				break
-			case 6: /* ㅕ */
-				this.dx = -2
-				this.dy = 0
-				break
-			case 17: /* ㅠ */
-				this.dx = 0
-				this.dy = 2
-				break
-			case 12: /* ㅛ */
-				this.dx = 0
-				this.dy = -2
-				break
-
-			case 20: /* ㅣ */
-				this.dx = -this.dx
-				break;
-			case 18: /* ㅡ */
-				this.dy = -this.dy
-				break
-			case 19: /* ㅢ */
-				this.dx = -this.dx
-				this.dy = -this.dy
-				break
-			// default: break
-			}
-		}
-		Aheui.prototype._followDirection = function() {
-			this.x += this.dx
-			if(this.x < 0)
-				this.x = this.plane[this.y].length - 1
-			else if(this.x >= this.plane[this.y].length && this.dx !== 0)
-				this.x = 0
-
-			this.y += this.dy
-			if(this.y < 0) {
-				/*var newY
-				for(newY = this.plane.length - 1; newY > 0; newY--) {
-					if(this.plane[newY].length > this.x) break
-				}
-				this.y = newY*/
-				this.y = this.plane.length - 1
-			} else if(this.y >= this.plane.length)
-				this.y = 0
-		}
-
 
 		return {
 			'Aheui': Aheui,
