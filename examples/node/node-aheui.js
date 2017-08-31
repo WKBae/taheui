@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs'),
-	aheui = require('../../dist/aheuijs.min')
+	aheui = require('../../dist/aheui.min')
 
 var script = ""
 var input = ""

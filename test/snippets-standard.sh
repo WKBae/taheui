@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd ./test/snippets
-AHEUI=../../examples/node/aheui.js bash test.sh standard
+AHEUI=../../examples/node/node-aheui.js bash test.sh standard
