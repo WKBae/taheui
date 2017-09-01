@@ -150,7 +150,7 @@
 	function popOperation(count, operation, resultHandler) {
 		var handler = resultHandler || ((stack, result, argument) => stack.push(result))
 
-		return (stack, argument) => {
+		return function popOperate(stack, argument) {
 			/** @type {Array<number>} */
 			var args = []
 			var i
