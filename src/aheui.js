@@ -143,8 +143,14 @@
 				try {
 					args.push(stack.pop())
 				} catch (e) {
-					for(var j = i - 1; j >= 0; j--) {
-						stack.push(args.pop())
+					if(stack instanceof Queue) {
+						for(var j = i - 1; j >= 0; j--) {
+							stack.append(args.pop())
+						}
+					} else {
+						for(var j = i - 1; j >= 0; j--) {
+							stack.push(args.pop())
+						}
 					}
 					throw e
 				}
@@ -205,7 +211,7 @@
 	/** @type {!function((Stack|Queue), number)} */
 	const NO_OP = rawOperation(() => {})
 	/** @type {!Cell} */
-	const EMPTY_CELL = new Cell([NO_OP], [0, 1, 0])
+	const EMPTY_CELL = new Cell([0, 1, 0], [NO_OP])
 
 	/**
 	 * Aheui script interpreter
