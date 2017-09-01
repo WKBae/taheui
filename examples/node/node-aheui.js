@@ -119,22 +119,13 @@ Input.prototype.readChar = function() {
 function setupScript(scr, lastInput) {
 	var script = new aheui.Aheui(scr)
 	var input = new Input(null, lastInput)
-	script.setCallbacks({
-		'input': {
-			'integer': () => input.readInt(),
-			'character': () => input.readChar()
-		},
-		'output': {
-			'integer': (ah, int) => process.stdout.write(int+''),
-			'character': (ah, chr) => process.stdout.write(chr)
-		},
-		'event': {
-			'reset': () => {},
-			'start': () => {},
-			'step': () => {},
-			'stop': () => {},
-			'end': (ah) => process.exit(ah.exitCode)
-		}
-	})
+	script.setIntegerInput(() => input.readInt())
+	script.setCharacterInput(() => input.readChar())
+
+	script.on('integer', (int) => process.stdout.write(int+''))
+		.on('character', (chr) => process.stdout.write(chr))
+
+	script.on('end', function() { process.exit(this.exitCode) })
+
 	return script
 }
