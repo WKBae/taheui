@@ -6,9 +6,13 @@
  * @param {undefined=} undefined
  */
  function(root, undefined) {
-	const cCho = [ 'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ],
-		cJung = [ 'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ' ],
-		cJong = [ '', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ];
+ 	/** @type {!Array<!String>} */
+	const cCho = [ 'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
+	/** @type {!Array<!String>} */
+	const cJung = [ 'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ' ]
+	/** @type {!Array<!String>} */
+	const cJong = [ '', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
+	/** @type {!Array<!number>} */
 	const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4, 1, 3, 4, 3, 4, 4, 3]
 	
 	/**
@@ -55,7 +59,22 @@
 	/**
 	 * Queue, FIFO data structure storing numbers
 	 */
-	class Queue extends Stack {
+	class Queue {
+		constructor() {
+			/**
+			 * @type {!Array<number>}
+			 * @protected
+			 */
+			this._items = []
+		}
+
+		/**
+		 * Push a number into the stack.
+		 * @param {number} value
+		 */
+		push(value) {
+			this._items.push(value)
+		}
 		/**
 		 * Pulls a number from the queue. Throws StackEmptyException if the queue is empty
 		 * @return {number} Pulled value
@@ -77,63 +96,30 @@
 		}
 	}
 
+	
 	/**
-	 * Interface of various operations
+	 * Return an operation which just calls the function given.
+	 * @param {!function((Stack|Queue), number)} operation Operation function to execute
+	 * @return {function((Stack|Queue), number)} operation
 	 */
-	class Operation {
-		/**
-		 * Initialize the operation. Happens once when the script is loaded.
-		 */
-		constructor() {}
-		/**
-		 * Performs the operation based on the state (of a stack)
-		 * @param {Stack} stack Currently selected Stack instance
-		 * @param {number} argument Integer given in the instruction
-		 */
-		run(stack, argument) {}
-	}
-	/**
-	 * Operation which just calls the function given.
-	 */
-	class RawOperation extends Operation {
-		/**
-		 * Initialize with the function to be called.
-		 * @param {!function(Stack, number)} operation
-		 */
-		constructor(operation) {
-			super()
-			/** @private {function(Stack, number)} */
-			this._operation = operation
-		}
-		
-		run(stack, argument) {
-			this._operation(stack, argument)
-		}
+	function rawOperation(operation) {
+		return operation
 	}
 
 	/**
-	 * Utility operation which pops certain amount of values from stack and process them.
+	 * Builds a pop operation, which pops certain amount of values from stack and process them.
+	 * @param {number} count Number of the items to be popped
+	 * @param {!function(...number)} operation Operation to be performed on the popped items
+	 * @param {function((Stack|Queue), ?, number)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
+	 * @return {function((Stack|Queue), number)} Operation function
 	 */
-	class PopOperation extends Operation {
-		/**
-		 * Initializes the PopOperation
-		 * @param {number} count Number of the items to be popped
-		 * @param {!function(...number)} operation Operation to be performed on the popped items
-		 * @param {function(Stack, ?, number)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
-		 */
-		constructor(count, operation, resultHandler) {
-			super()
-			/** @private {number} */
-			this._count = count
-			/** @private {function(...number)} */
-			this._operation = operation
-			/** @private {function(Stack, ?, number)} */
-			this._handler = resultHandler || ((stack, result, argument) => stack.push(result))
-		}
-		run(stack, argument) {
+	function popOperation(count, operation, resultHandler) {
+		var handler = resultHandler || ((stack, result, argument) => stack.push(result))
+
+		return (stack, argument) => {
 			/** @type {Array<number>} */
 			var args = []
-			for(var i = 0; i < this._count; i++) {
+			for(var i = 0; i < count; i++) {
 				try {
 					args.push(stack.pop())
 				} catch (e) {
@@ -144,7 +130,7 @@
 				}
 			}
 			args.reverse()
-			this._handler(stack, this._operation.apply(this, args), argument)
+			handler(stack, operation.apply(this, args), argument)
 		}
 	}
 
@@ -152,12 +138,12 @@
 		/**
 		 * Builds a cell with the given character
 		 * @param {string|number|!Array<number>} char Character, parsed or not, representing a cell
-		 * @param {!Array<Operation>} operations List of the operations per each 'Choseong'
+		 * @param {!Array<function((Stack|Queue), number)>} operations List of the operations per each 'Choseong'
 		 */
 		constructor(char, operations) {
 			if(typeof char === 'string' || typeof char === 'number')
 				char = Cell.parseChar(/** @type {string|number} */ (char))
-			/** @private {Operation} */
+			/** @private {function((Stack|Queue), number)} */
 			this._op = operations[char[0]]
 			/** @private {number} */
 			this._dir = char[1]
@@ -171,7 +157,7 @@
 		run(aheui) {
 			aheui._updateDirection(this._dir)
 			try {
-				this._op.run(aheui.stacks[aheui.currentStack], this._argument)
+				this._op(aheui.stacks[aheui.currentStack], this._argument)
 			} catch (e) {
 				if(e instanceof StackEmptyException) {
 					aheui._updateDirection(19 /* ㅢ, reverse */)
@@ -196,8 +182,8 @@
 		}
 	}
 
-	/** @type {!Operation} */
-	const NO_OP = new Operation()
+	/** @type {!function((Stack|Queue), number)} */
+	const NO_OP = rawOperation(() => {})
 	/** @type {!Cell} */
 	const EMPTY_CELL = new Cell([NO_OP], [0, 1, 0])
 
@@ -206,47 +192,20 @@
 	 */
 	class Aheui {
 		constructor(script) {
-			var that = this
-
 			/** @type {string} */
 			this.script = script
 
-			/** @type {!Array<Stack>} */
-			this.stacks = []
-			cJong.forEach((c, i) => {
-				if(c === 'ㅇ') that.stacks[i] = new Queue()
-				else that.stacks[i] = new Stack()
-			})
+			this._init()
 
-			/** @type {number} */
-			this.currentStack = 0
-			/** @type {?number} */
-			this.exitCode = null
-			/** @type {number} */
-			this.stepCount = 0
-			/** @type {boolean} */
-			this.running = false
-			/** @private {?number} */
-			this._interval = 0
-
-			/** @type {number} */
-			this.x = 0
-			/** @type {number} */
-			this.y = 0
-
-			/** @type {number} */
-			this.dx = 0
-			/** @type {number} */
-			this.dy = 1
-
+			var that = this
 			var operations = [
 			/* ㄱ */ NO_OP,
 			/* ㄲ */ NO_OP,
-			/* ㄴ */ new PopOperation(2, (a, b) => a / b |0),
-			/* ㄷ */ new PopOperation(2, (a, b) => a + b),
-			/* ㄸ */ new PopOperation(2, (a, b) => a * b),
-			/* ㄹ */ new PopOperation(2, (a, b) => a % b),
-			/* ㅁ */ new PopOperation(1, (a) => a,
+			/* ㄴ */ popOperation(2, (a, b) => a / b |0),
+			/* ㄷ */ popOperation(2, (a, b) => a + b),
+			/* ㄸ */ popOperation(2, (a, b) => a * b),
+			/* ㄹ */ popOperation(2, (a, b) => a % b),
+			/* ㅁ */ popOperation(1, (a) => a,
 						(stack, result, argument) => {
 							if(argument === 21 /* ㅇ */) {
 								that.callbacks.output.integer(that, result)
@@ -261,7 +220,7 @@
 								that.callbacks.output.character(that, char)
 							}
 						}),
-			/* ㅂ */ new RawOperation((stack, argument) => {
+			/* ㅂ */ rawOperation((stack, argument) => {
 							if(argument === 21 /* ㅇ */) {
 								stack.push(that.callbacks.input.integer(that))
 							} else if(argument === 27 /* ㅎ */) {
@@ -271,7 +230,7 @@
 								stack.push(jongCount[argument])
 							}
 						}),
-			/* ㅃ */ new PopOperation(1, (a) => a,
+			/* ㅃ */ popOperation(1, (a) => a,
 						(stack, a) => {
 							if(stack instanceof Queue) {
 								stack.append(a)
@@ -281,17 +240,17 @@
 								stack.push(a)
 							}
 						}),
-			/* ㅅ */ new RawOperation((stack, argument) => {
+			/* ㅅ */ rawOperation((stack, argument) => {
 							that.currentStack = argument
 						}),
-			/* ㅆ */ new PopOperation(1, (a) => a,
+			/* ㅆ */ popOperation(1, (a) => a,
 						(stack, result, argument) => {
 							that.stacks[argument].push(result)
 						}),
 			/* ㅇ */ NO_OP,
-			/* ㅈ */ new PopOperation(2, (a, b) => a >= b? 1 : 0),
+			/* ㅈ */ popOperation(2, (a, b) => a >= b? 1 : 0),
 			/* ㅉ */ NO_OP,
-			/* ㅊ */ new PopOperation(1, (a) => a != 0,
+			/* ㅊ */ popOperation(1, (a) => a != 0,
 						(stack, result) => {
 							if(!result) {
 								that.dx = -that.dx
@@ -299,8 +258,8 @@
 							}
 						}),
 			/* ㅋ */ NO_OP,
-			/* ㅌ */ new PopOperation(2, (a, b) => a - b),
-			/* ㅍ */ new PopOperation(2, (a, b) => [b, a],
+			/* ㅌ */ popOperation(2, (a, b) => a - b),
+			/* ㅍ */ popOperation(2, (a, b) => [b, a],
 						(stack, result) => {
 							if(stack instanceof Queue) {
 								stack.append(result[0])
@@ -310,7 +269,7 @@
 								stack.push(result[1])
 							}
 						}),
-			/* ㅎ */ new RawOperation((stack) => {
+			/* ㅎ */ rawOperation((stack) => {
 						var res
 						try {
 							res = stack.pop()
@@ -375,25 +334,34 @@
 		 * Initializes the local variables.
 		 */
 		_init() {
-			var that = this
+			/** @type {!Array<Stack|Queue>} */
+			this.stacks = []
+			for(var i = 0; i < cJong.length; i++) {
+				if(i == 11 /* 'ㅇ' */) this.stacks[i] = new Queue()
+				else this.stacks[i] = new Stack()
+			}
 
-			that.stacks = []
-			cJong.forEach((c, i) => {
-				if(c === 'ㅇ') that.stacks[i] = new Queue()
-				else that.stacks[i] = new Stack()
-			})
+			/** @type {number} */
+			this.currentStack = 0
+			/** @type {?number} */
+			this.exitCode = null
+			/** @type {number} */
+			this.stepCount = 0
+			/** @type {boolean} */
+			this.running = false
+			/** @private {?number} */
+			this._interval = 0
 
-			that.currentStack = 0
-			that.exitCode = null
-			that.stepCount = 0
-			that.running = false
-			that._interval = 0
+			/** @type {number} */
+			this.x = 0
+			/** @type {number} */
+			this.y = 0
 
-			that.x = 0
-			that.y = 0
+			/** @type {number} */
+			this.dx = 0
+			/** @type {number} */
+			this.dy = 1
 
-			that.dx = 0
-			that.dy = 1
 		}
 
 		/**
