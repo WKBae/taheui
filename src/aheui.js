@@ -72,10 +72,15 @@
 	class Queue {
 		constructor() {
 			/**
-			 * @type {!Array<number>}
+			 * @type {?Array<number|?Array>}
 			 * @protected
 			 */
-			this._items = []
+			this._head = null
+			/**
+			 * @type {?Array<number|?Array>}
+			 * @protected
+			 */
+			this._tail = null
 		}
 
 		/**
@@ -83,7 +88,13 @@
 		 * @param {number} value
 		 */
 		push(value) {
-			this._items.push(value)
+			var node = [value, null]
+			if(this._tail) {
+				this._tail[1] = node
+				this._tail = node
+			} else {
+				this._tail = this._head = node
+			}
 		}
 		/**
 		 * Pulls a number from the queue. Throws StackEmptyException if the queue is empty
@@ -91,18 +102,21 @@
 		 * @throws {StackEmptyException}
 		 */
 		pop() {
-			var res = this._items.shift()
-			if(res === undefined) {
+			if(this._head) {
+				var val = /** @type {number} */ (this._head[0])
+				this._head = /** @type {Array<number|?Array>} */ (this._head[1])
+				if(!this._head) this._tail = null
+				return val
+			} else {
 				throw new StackEmptyException()
 			}
-			return res
 		}
 		/**
 		 * Appends the value to the front of the queue, unlike push() which adds to the last.
 		 * @param {number} value
 		 */
 		append(value) {
-			this._items.unshift(value)
+			this._head = [value, this._head]
 		}
 
 		/**
@@ -110,8 +124,8 @@
 		 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
 		 */
 		every(loop) {
-			for(var i = 0; i < this._items.length; i++) {
-				if(loop(this._items[i], i) === false) break
+			for(var node = this._head, i = 0; node != null; node = node[1], i++) {
+				if(loop(/** @type {number} */ (node[0]), i) === false) break
 			}
 		}
 	}
