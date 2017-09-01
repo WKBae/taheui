@@ -54,6 +54,16 @@
 			}
 			return res
 		}
+
+		/**
+		 * Loops for each element of this stack. Index orders from the bottom(first-in, last-out) to top(last-in, first-out)
+		 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
+		 */
+		every(loop) {
+			for(var i = 0; i < this._items.length; i++) {
+				if(loop(this._items[i], i) === false) break
+			}
+		}
 	}
 
 	/**
@@ -93,6 +103,16 @@
 		 */
 		append(value) {
 			this._items.unshift(value)
+		}
+
+		/**
+		 * Loops for each element of this queue. Index orders from the front(first-in, first-out) to back(last-in, last-out)
+		 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
+		 */
+		every(loop) {
+			for(var i = 0; i < this._items.length; i++) {
+				if(loop(this._items[i], i) === false) break
+			}
 		}
 	}
 
