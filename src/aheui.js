@@ -153,23 +153,18 @@
 		return (stack, argument) => {
 			/** @type {Array<number>} */
 			var args = []
-			for(var i = 0; i < count; i++) {
-				try {
-					args.push(stack.pop())
-				} catch (e) {
-					if(stack instanceof Queue) {
-						for(var j = i - 1; j >= 0; j--) {
-							stack.append(args.pop())
-						}
-					} else {
-						for(var j = i - 1; j >= 0; j--) {
-							stack.push(args.pop())
-						}
-					}
-					throw e
+			var i
+			try {
+				for(i = count - 1; i >= 0; i--) {
+					args[i] = stack.pop()
 				}
+			} catch(e) {
+				var push = stack.append || stack.push // (stack instanceof Queue)? stack.append : stack.push
+				for(i++; i < count; i++) {
+					push.call(stack, args[i])
+				}
+				throw e
 			}
-			args.reverse()
 			handler(stack, operation.apply(this, args), argument)
 		}
 	}
