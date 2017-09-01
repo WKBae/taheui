@@ -228,7 +228,7 @@
 			/* ㅁ */ popOperation(1, (a) => a,
 						(stack, result, argument) => {
 							if(argument === 21 /* ㅇ */) {
-								that.callbacks.output.integer(that, result)
+								that.emit('integer', result)
 							} else if(argument === 27 /* ㅎ */) {
 								var char
 								if(result <= 0xFFFF || result > 0x10FFFF) {
@@ -237,14 +237,14 @@
 									result -= 0x10000
 									char = String.fromCharCode((result >> 10) + 0xD800, (result % 0x400) + 0xDC00)
 								}
-								that.callbacks.output.character(that, char)
+								that.emit('character', char)
 							}
 						}),
 			/* ㅂ */ rawOperation((stack, argument) => {
 							if(argument === 21 /* ㅇ */) {
-								stack.push(that.callbacks.input.integer(that))
+								stack.push(that._intIn.call(that))
 							} else if(argument === 27 /* ㅎ */) {
-								var char = that.callbacks.input.character(that)
+								var char = that._charIn.call(that)
 								stack.push(typeof char === 'string'? char.charCodeAt(0) : char)
 							} else {
 								stack.push(jongCount[argument])
@@ -310,43 +310,14 @@
 				}
 			})
 
-			/** @type {Object} */
-			this.callbacks = {
-				'input': {
-					'integer': () => prompt("정수를 입력해주세요.") | 0,
-					'character': () => prompt("문자를 입력해주세요.")
-				},
-				'output': {
-					'integer': (ah, int) => alert(int),
-					'character': (ah, chr) => alert(chr)
-				},
-				'event': {
-					'reset': () => console.log("[Aheui] Resetted"),
-					'start': () => console.log("[Aheui] Run started"),
-					'step': (ah) => console.log("[Aheui] Step# " + ah.stepCount),
-					'stop': () => console.log("[Aheui] Run stopped"),
-					'end': (ah) => console.log("[Aheui] Run finished with code:", ah.exitCode)
-				}
-			}
-		}
+			/** @private {!Object<string, Array<function(this:Aheui, ...?)>>} */
+			this._callbacks = {}
 
-		/**
-		 * Registers callbacks to the script.
-		 * Note that, at this moment, only one callback can be registered.
-		 * @param {Object} cbObj
-		 */
-		setCallbacks(cbObj) {
-			(function recur(callback, cbObj) {
-				for(var i in cbObj) {
-					if(callback.hasOwnProperty(i)) {
-						if(typeof cbObj[i] === 'object') {
-							recur(callback[i], cbObj[i])
-						} else if(typeof cbObj[i] === 'function') {
-							callback[i] = cbObj[i]
-						}
-					}
-				}
-			})(this.callbacks, cbObj)
+			// TODO use callbacks instead of return value
+			/** @private {!function(this:Aheui):number} */
+			this._intIn = () => -1
+			/** @private {!function(this:Aheui):(string|number)} */
+			this._charIn = () => -1
 		}
 
 		/**
@@ -357,7 +328,7 @@
 			/** @type {!Array<Stack|Queue>} */
 			this.stacks = []
 			for(var i = 0; i < cJong.length; i++) {
-				if(i == 11 /* 'ㅇ' */) this.stacks[i] = new Queue()
+				if(i == 21 /* 'ㅇ' */) this.stacks[i] = new Queue()
 				else this.stacks[i] = new Stack()
 			}
 
@@ -389,7 +360,7 @@
 		 */
 		reset() {
 			this._init()
-			this.callbacks.event.reset(this)
+			this.emit('reset')
 		}
 
 		/**
@@ -398,19 +369,19 @@
 		step() {
 			if(this.exitCode !== null) return
 			if(!this.running) {
-				this.callbacks.event.start(this)
+				this.emit('start')
 			}
 			if(this.plane[this.y] && this.plane[this.y][this.x])
 				this.plane[this.y][this.x].run(this)
 			else
 				EMPTY_CELL.run(this)
 			this.stepCount++
-			this.callbacks.event.step(this)
+			this.emit('step')
 			if(!this.running) {
 				if(this.exitCode === null) {
-					this.callbacks.event.stop(this)
+					this.emit('stop')
 				} else {
-					this.callbacks.event.end(this)
+					this.emit('end')
 				}
 			}
 		}
@@ -424,7 +395,7 @@
 			if(that.running) return
 			that.running = true
 
-			that.callbacks.event.start(that)
+			that.emit('start')
 
 			if(typeof batchSize === 'number' && batchSize > 0) {
 				that._batch(batchSize)
@@ -433,7 +404,7 @@
 					that.step()
 				}
 				that.running = false
-				that.callbacks.event.end(that)
+				that.emit('end')
 			} else {
 				that._batch(10000)
 			}
@@ -458,7 +429,7 @@
 					that.running = false
 					clearInterval(that._interval)
 					that._interval = 0
-					that.callbacks.event.end(that)
+					that.emit('end')
 				}
 			}, 0)
 		}
@@ -471,7 +442,7 @@
 			if(this.running) {
 				clearInterval(this._interval)
 				this.running = false
-				this.callbacks.event.stop(this)
+				this.emit('stop')
 			}
 		}
 
@@ -549,6 +520,100 @@
 				this.y = 0
 			}
 		}
+
+		/**
+		 * Register a callback for an event.
+		 * Aheui object is bound as `this` when the callback is called
+		 * @param {!string} event
+		 * @param {!function(this:Aheui, ...?)} callback
+		 * @return {Aheui} this object, for chaining
+		 */
+		on(event, callback) {
+			if(!this._callbacks[event]) this._callbacks[event] = []
+			this._callbacks[event].push(callback)
+			return this
+		}
+		/**
+		 * Register a one-shot callback, which is called once and unregistered, for an event.
+		 * Aheui object is bound as `this` when the callback is called
+		 * @param {!string} event
+		 * @param {!function(this:Aheui, ...?)} callback
+		 * @return {Aheui} this object, for chaining
+		 */
+		once(event, callback) {
+			if(!this._callbacks[event]) this._callbacks[event] = []
+			var realCallback = function() {
+				callback.apply(this, arguments)
+				this.off(event, realCallback)
+			}
+			this._callbacks[event].push(realCallback)
+			return this
+		}
+		/**
+		 * Unregister callback(s).
+		 * If both `event` and `callback` is given, the callback is unregistered.
+		 * If `event` is given, unregisters all callbacks of the event.
+		 * If none is given, unregisters all callbacks registered.
+		 * @param {!string=} event
+		 * @param {!function(this:Aheui, ...?)=} callback
+		 * @return {Aheui} this object, for chaining
+		 */
+		off(event, callback) {
+			if(event) {
+				if(callback) {
+					var index = this._callbacks[event]?
+									this._callbacks[event].indexOf(callback)
+								:
+									-1
+					if(index >= 0)
+						this._callbacks[event].splice(index, 1)
+				} else {
+					delete this._callbacks[event]
+				}
+			} else {
+				this._callbacks = {}
+			}
+			return this
+		}
+		/**
+		 * @protected
+		 * Emits an event. Calls all callback functions registered for this event.
+		 * @param {!string} event Name of event to fire
+		 * @param {...?} args Arguments to pass to callback functions
+		 * @return {Aheui} this object, for chaining
+		 */
+		 emit(event, ...args) {
+		 	if(this._callbacks[event]) {
+		 		// callbacks may be unregistered within callback, so loop backward
+		 		for(var i = this._callbacks[event].length - 1; i >= 0; i--) {
+		 			this._callbacks[event][i].apply(this, args)
+		 		}
+		 	}
+			return this
+		 }
+
+		 /**
+		  * Sets input function returning number, which is called on number input
+		  * Aheui object is bound as `this` when the function is called.
+		  * @param {!function(this:Aheui):number} inputFunc
+		  * @return {function(this:Aheui):number} Old input function
+		  */
+		 setIntegerInput(inputFunc) {
+		 	var old = this._intIn
+		 	this._intIn = inputFunc
+		 	return old
+		 }
+		 /**
+		  * Sets input function returning character, which is called on character input
+		  * Aheui object is bound as `this` when the function is called.
+		  * @param {!function(this:Aheui):(string|number)} inputFunc
+		  * @return {function(this:Aheui):(string|number)} Old input function
+		  */
+		 setCharacterInput(inputFunc) {
+		 	var old = this._charIn
+		 	this._charIn = inputFunc
+		 	return old
+		 }
 	};
 
 	var aheui = {
@@ -561,8 +626,10 @@
 	
 	/** @suppress {checkVars} */
 	(function register() {
-		if(typeof exports !== 'undefined') {
-			if(typeof module !== 'undefined' && module.exports) {
+		// benefits code minification, instead of 'undefined' literal
+		var undefinedStr = typeof undefined
+		if(typeof exports !== undefinedStr) {
+			if(typeof module !== undefinedStr && module.exports) {
 				exports = module.exports = aheui
 			}
 			exports['aheui'] = aheui
