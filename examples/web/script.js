@@ -26,7 +26,7 @@ function setupResults(debug, keepOutput) {
 		// clear outputs
 		var fc
 		while(fc = outputs.firstChild) {
-			elen.removeChild(fc)
+			outputs.removeChild(fc)
 		}
 	}
 
@@ -291,7 +291,7 @@ function initScript() {
 		updateDOM = buildDOMUpdater()
 		var lastUpdate = 0
 		window.requestAnimationFrame(function update(timestamp) {
-			if(timestamp - lastUpdate > 100) {
+			if(timestamp - lastUpdate > 300) {
 				updateDOM()
 				lastUpdate = timestamp
 			}
@@ -300,7 +300,7 @@ function initScript() {
 	} else {
 		if(updateTimer) clearInterval(updateTimer)
 		updateDOM = buildDOMUpdater()
-		updateTimer = setInterval(updateDOM, 100)
+		updateTimer = setInterval(updateDOM, 300)
 	}
 
 	return script

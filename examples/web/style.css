@@ -13,6 +13,7 @@ label {
 #scriptarea {
 	font-size: .95em;
 	min-height: 200px;
+	max-height: 500px;
 	padding: 4px;
 	word-break: keep-all;
 	white-space: pre;
