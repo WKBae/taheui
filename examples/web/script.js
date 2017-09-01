@@ -2,15 +2,17 @@ function byId(id) {
 	return document.getElementById(id)
 }
 
-var output, scriptContent, stackContents, currentStack
+var output, scriptContent, stacksChanged, stackContents, currentStack
 function setupResults(debug, keepOutput) {
 	if(!keepOutput) output = ""
 	if(debug) {
 		scriptContent = ""
+		stacksChanged = {}
 		stackContents = []
 		currentStack = -1
 	} else {
 		scriptContent = null
+		stacksChanged = null
 		stackContents = null
 		currentStack = null
 	}
@@ -75,7 +77,7 @@ function buildDOMUpdater() {
 		outputs = byId('outputs'),
 		scriptarea = byId('scriptarea')
 
-	var lastOutput = "", lastScript = "", lastStacks = [], lastStack = -1
+	var lastOutput = "", lastScript = "", lastStack = -1
 	return function updateDOM() {
 		if(output !== lastOutput) {
 			outputs.textContent = output
@@ -97,35 +99,31 @@ function buildDOMUpdater() {
 						lis[lastStack].classList.remove('show')
 					}
 				}
+
 				if(currentStack >= 0) {
 					lis[currentStack].classList.add('list-group-item-primary')
 					lis[currentStack].classList.add('show')
+				} else {
+					for(var i = 0; i < lis.length; i++)
+						lis[i].classList.remove('show')
 				}
+
 				lastStack = currentStack
 			}
-			for(var i in stackContents) {
-				if(i != currentStack) {
-					if((!lastStacks[i] || lastStacks[i].length === 0) && stackContents[i].length > 0) {
-						lis[i].classList.add('show')
-					} else if(lastStacks[i] && lastStacks[i].length > 0 && stackContents[i].length === 0) {
-						lis[i].classList.remove('show')
-					}
-				}
-				if(lastStacks[i] && stackContents[i].length === lastStacks[i].length) {
-					var equals = true
-					for(var j = 0; j < stackContents[i].length; j++) {
-						if(lastStacks[i][j] !== stackContents[i][j]) {
-							equals = false
-							break
-						}
-					}
-					if(equals) continue
-				}
-				var content = lis[i].getElementsByClassName("stack-content")[0]
-				content.textContent = stackContents[i].reduce((prev, e) => prev + ', ' + e, "").slice(2)
 
-				// safe, stackContents[i] is not modified, it is replaced with a new array
-				lastStacks[i] = stackContents[i]
+			for(var i in stacksChanged) {
+				if(!stacksChanged.hasOwnProperty(i) || !stacksChanged[i]) continue
+
+				var content = lis[i].getElementsByClassName("stack-content")[0]
+				content.textContent = stackContents[i].join(", ")
+				
+				if(stackContents[i].length > 0) {
+					lis[i].classList.add('show')
+				} else if(i != currentStack) {
+					lis[i].classList.remove('show')
+				}
+
+				stacksChanged[i] = false
 			}
 		}
 
@@ -189,7 +187,20 @@ function setCallbacks(script, debug) {
 					).slice(4)
 
 					for(var i in aheui.jong) {
-						stackContents[i] = ah.stacks[i].items.slice()
+						if(!stackContents[i]) stackContents[i] = []
+
+						var lastJ = -1
+						ah.stacks[i].every((item, j) => {
+							if(stackContents[i][j] != item) {
+								stacksChanged[i] = true
+								stackContents[i][j] = item
+							}
+							lastJ = j
+						})
+						if(lastJ == -1 && stackContents[i].length > 0) {
+							stacksChanged[i] = true
+						}
+						stackContents[i].length = lastJ + 1
 					}
 					currentStack = ah.currentStack
 				},
@@ -291,7 +302,7 @@ function initScript() {
 		updateDOM = buildDOMUpdater()
 		var lastUpdate = 0
 		window.requestAnimationFrame(function update(timestamp) {
-			if(timestamp - lastUpdate > 300) {
+			if(timestamp - lastUpdate > 100) {
 				updateDOM()
 				lastUpdate = timestamp
 			}
@@ -300,7 +311,7 @@ function initScript() {
 	} else {
 		if(updateTimer) clearInterval(updateTimer)
 		updateDOM = buildDOMUpdater()
-		updateTimer = setInterval(updateDOM, 300)
+		updateTimer = setInterval(updateDOM, 100)
 	}
 
 	return script
