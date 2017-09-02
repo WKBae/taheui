@@ -3,6 +3,11 @@
 html body {
 	font-family: 'Nanum Gothic Coding', Sans-Serif;
 	font-size: 15px;
+	background: #BBB;
+}
+.container {
+	background: #FFF;
+	border-radius: 2px;
 }
 label {
 	font-size: .9em;
