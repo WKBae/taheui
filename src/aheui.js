@@ -253,7 +253,7 @@
 						}),
 			/* ㅃ */ popOperation(1, (a) => a,
 						(stack, a) => {
-							if(stack instanceof Queue) {
+							if(stack.append) {
 								stack.append(a)
 								stack.append(a)
 							} else {
@@ -282,7 +282,7 @@
 			/* ㅌ */ popOperation(2, (a, b) => a - b),
 			/* ㅍ */ popOperation(2, (a, b) => [b, a],
 						(stack, result) => {
-							if(stack instanceof Queue) {
+							if(stack.append) {
 								stack.append(result[0])
 								stack.append(result[1])
 							} else {
