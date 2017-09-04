@@ -16,14 +16,6 @@
 	const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4, 1, 3, 4, 3, 4, 4, 3]
 	
 	/**
-	 * @private
-	 * The exception identifying that the stack is empty.
-	 */
-	class StackEmptyException {
-
-	}
-
-	/**
 	 * Single stack storing numbers.
 	 */
 	class Stack {
@@ -43,15 +35,15 @@
 			this._items.push(value)
 		}
 		/**
-		 * Pop a number from the stack. Throws StackEmptyException if the stack is empty.
-		 * @return {number} Popped value
-		 * @throws {StackEmptyException}
+		 * Pop a number from the stack. Returns `undefined` if the stack is empty.
+		 * @return {number|undefined} Popped value
 		 */
 		pop() {
 			var res = this._items.pop()
-			if(res === undefined) {
-				throw new StackEmptyException()
-			}
+			/*if(res === undefined) {
+				// throw new StackEmptyException()
+				return undefined
+			}*/
 			return res
 		}
 
@@ -97,9 +89,8 @@
 			}
 		}
 		/**
-		 * Pulls a number from the queue. Throws StackEmptyException if the queue is empty
-		 * @return {number} Pulled value
-		 * @throws {StackEmptyException}
+		 * Pulls a number from the queue. Returns `undefined` if the queue is empty
+		 * @return {number|undefined} Pulled value
 		 */
 		pop() {
 			if(this._head) {
@@ -108,7 +99,7 @@
 				if(!this._head) this._tail = null
 				return val
 			} else {
-				throw new StackEmptyException()
+				return undefined
 			}
 		}
 		/**
@@ -133,8 +124,8 @@
 	
 	/**
 	 * Return an operation which just calls the function given.
-	 * @param {!function((Stack|Queue), number)} operation Operation function to execute
-	 * @return {function((Stack|Queue), number)} operation
+	 * @param {!(function((Stack|Queue), ?, number)|function((Stack|Queue), ?, number):boolean)} operation Operation function to execute
+	 * @return {(function((Stack|Queue), ?, number)|function((Stack|Queue), ?, number):boolean)} operation
 	 */
 	function rawOperation(operation) {
 		return operation
@@ -144,8 +135,8 @@
 	 * Builds a pop operation, which pops certain amount of values from stack and process them.
 	 * @param {number} count Number of the items to be popped
 	 * @param {!function(...number)} operation Operation to be performed on the popped items
-	 * @param {function((Stack|Queue), ?, number)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
-	 * @return {function((Stack|Queue), number)} Operation function
+	 * @param {(function((Stack|Queue), ?, number)|function((Stack|Queue), ?, number):boolean)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
+	 * @return {function((Stack|Queue), number):boolean} Operation function
 	 */
 	function popOperation(count, operation, resultHandler) {
 		var handler = resultHandler || ((stack, result, argument) => stack.push(result))
@@ -153,19 +144,17 @@
 		return function popOperate(stack, argument) {
 			/** @type {Array<number>} */
 			var args = []
-			var i
-			try {
-				for(i = count - 1; i >= 0; i--) {
-					args[i] = stack.pop()
+			for(var i = count - 1; i >= 0; i--) {
+				args[i] = stack.pop()
+				if(args[i] === undefined) {
+					var push = stack.append || stack.push // (stack instanceof Queue)? stack.append : stack.push
+					for(i++; i < count; i++) {
+						push.call(stack, args[i])
+					}
+					return false
 				}
-			} catch(e) {
-				var push = stack.append || stack.push // (stack instanceof Queue)? stack.append : stack.push
-				for(i++; i < count; i++) {
-					push.call(stack, args[i])
-				}
-				throw e
 			}
-			handler(stack, operation.apply(this, args), argument)
+			return handler(stack, operation.apply(this, args), argument)
 		}
 	}
 
@@ -191,15 +180,12 @@
 		 */
 		run(aheui) {
 			aheui._updateDirection(this._dir)
-			try {
-				this._op(aheui.stacks[aheui.currentStack], this._argument)
-			} catch (e) {
-				if(e instanceof StackEmptyException) {
-					aheui._updateDirection(19 /* ㅢ, reverse */)
-				} else {
-					throw e
-				}
+			
+			var success = this._op(aheui.stacks[aheui.currentStack], this._argument)
+			if(success === false) {
+				aheui._updateDirection(19 /* ㅢ, reverse */)
 			}
+
 			aheui._followDirection()
 		}
 
@@ -305,13 +291,7 @@
 							}
 						}),
 			/* ㅎ */ rawOperation((stack) => {
-						var res
-						try {
-							res = stack.pop()
-						} catch (e) {
-							res = 0
-						}
-						that.exitCode = res
+						that.exitCode = stack.pop() || 0
 					})
 			]
 
