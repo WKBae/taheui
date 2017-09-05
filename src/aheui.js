@@ -66,11 +66,14 @@
 			/**
 			 * @type {?Array<number|?Array>}
 			 * @protected
+			 * The head of the linked list. Using the linked list for better performance on pop() operation.
+			 * Data in the list is represented as an array, [value, next].
 			 */
 			this._head = null
 			/**
 			 * @type {?Array<number|?Array>}
 			 * @protected
+			 * The tail to push the values beyond.
 			 */
 			this._tail = null
 		}
@@ -239,6 +242,10 @@
 	 * Aheui script interpreter
 	 */
 	class Aheui {
+		/**
+		 * Build an Aheui interpreter with the given script string.
+		 * @param {string} script The Aheui script
+		 */
 		constructor(script) {
 			/** @type {string} */
 			this.script = script
