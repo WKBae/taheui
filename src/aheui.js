@@ -546,29 +546,40 @@
 		/**
 		 * Register a callback for an event.
 		 * Aheui object is bound as `this` when the callback is called
-		 * @param {!string} event
+		 * @param {!string} events Space-separated list of events to subscribe
 		 * @param {!function(this:Aheui, ...?)} callback
 		 * @return {Aheui} this object, for chaining
 		 */
-		on(event, callback) {
-			if(!this._callbacks[event]) this._callbacks[event] = []
-			this._callbacks[event].push(callback)
+		on(events, callback) {
+			var eventSplit = events.split(' ')
+			eventSplit.forEach((event) => {
+				if(!this._callbacks[event]) this._callbacks[event] = []
+
+				this._callbacks[event].push(callback)
+			})
 			return this
 		}
 		/**
 		 * Register a one-shot callback, which is called once and unregistered, for an event.
 		 * Aheui object is bound as `this` when the callback is called
-		 * @param {!string} event
+		 * @param {!string} events Space-separated list of events to subscribe
 		 * @param {!function(this:Aheui, ...?)} callback
 		 * @return {Aheui} this object, for chaining
 		 */
-		once(event, callback) {
-			if(!this._callbacks[event]) this._callbacks[event] = []
+		once(events, callback) {
+			var eventSplit = events.split(' ')
+
 			var realCallback = function() {
 				callback.apply(this, arguments)
-				this.off(event, realCallback)
+
+				eventSplit.forEach((event) => this.off(event, realCallback))
 			}
-			this._callbacks[event].push(realCallback)
+
+			eventSplit.forEach((event) => {
+				if(!this._callbacks[event]) this._callbacks[event] = []
+
+				this._callbacks[event].push(realCallback)
+			})
 			return this
 		}
 		/**
@@ -576,22 +587,25 @@
 		 * If both `event` and `callback` is given, the callback is unregistered.
 		 * If `event` is given, unregisters all callbacks of the event.
 		 * If none is given, unregisters all callbacks registered.
-		 * @param {!string=} event
+		 * @param {!string=} events Space-separated list of events to unsubscribe
 		 * @param {!function(this:Aheui, ...?)=} callback
 		 * @return {Aheui} this object, for chaining
 		 */
-		off(event, callback) {
-			if(event) {
-				if(callback) {
-					var index = this._callbacks[event]?
-									this._callbacks[event].indexOf(callback)
-								:
-									-1
-					if(index >= 0)
-						this._callbacks[event].splice(index, 1)
-				} else {
-					delete this._callbacks[event]
-				}
+		off(events, callback) {
+			if(events) {
+				var eventSplit = events.split(' ')
+				eventSplit.forEach((event) => {
+					if(callback) {
+						var index = this._callbacks[event]?
+										this._callbacks[event].indexOf(callback)
+									:
+										-1
+						if(index >= 0)
+							this._callbacks[event].splice(index, 1)
+					} else {
+						delete this._callbacks[event]
+					}
+				})
 			} else {
 				this._callbacks = {}
 			}
