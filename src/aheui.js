@@ -209,14 +209,14 @@
 		 * @param {!Aheui} aheui
 		 */
 		run(aheui) {
-			aheui._updateDirection(this._dir)
+			Cell.updateDirection(aheui, this._dir)
 			
 			var success = this._op(aheui.stacks[aheui.currentStack], this._argument)
 			if(success === false) {
-				aheui._updateDirection(19 /* ㅢ, reverse */)
+				Cell.updateDirection(aheui, 19 /* ㅢ, reverse */)
 			}
 
-			aheui._followDirection()
+			Cell.followDirection(aheui)
 		}
 
 		/**
@@ -230,6 +230,84 @@
 			if(c < 0xAC00 || c > 0xD7A3) return [11, 1, 0] // default, no-op character
 			c -= 0xAC00
 			return [c/28/21 | 0, (c/28 | 0) % 21, c % 28]
+		}
+
+
+		/**
+		 * @private
+		 * Update the direction vector according to the given Jungseong directive.
+		 * @param {Aheui} aheui Aheui object to update
+		 * @param {number} jung 0-based Jungseong of an instruction
+		 */
+		static updateDirection(aheui, jung) {
+			switch(jung) {
+			case 0: /* ㅏ */
+				aheui.dx = 1
+				aheui.dy = 0
+				break
+			case 4: /* ㅓ */
+				aheui.dx = -1
+				aheui.dy = 0
+				break
+			case 13: /* ㅜ */
+				aheui.dx = 0
+				aheui.dy = 1
+				break
+			case 8: /* ㅗ */
+				aheui.dx = 0
+				aheui.dy = -1
+				break
+			
+			case 2: /* ㅑ */
+				aheui.dx = 2
+				aheui.dy = 0
+				break
+			case 6: /* ㅕ */
+				aheui.dx = -2
+				aheui.dy = 0
+				break
+			case 17: /* ㅠ */
+				aheui.dx = 0
+				aheui.dy = 2
+				break
+			case 12: /* ㅛ */
+				aheui.dx = 0
+				aheui.dy = -2
+				break
+
+			case 20: /* ㅣ */
+				aheui.dx = -aheui.dx
+				break;
+			case 18: /* ㅡ */
+				aheui.dy = -aheui.dy
+				break
+			case 19: /* ㅢ */
+				aheui.dx = -aheui.dx
+				aheui.dy = -aheui.dy
+				break
+			// default: break
+			}
+		}
+
+		/**
+		 * @private
+		 * Moves along the plane by the direction vector.
+		 * @param {Aheui} aheui Aheui object to update
+		 */
+		static followDirection(aheui) {
+			aheui.x += aheui.dx
+			if(aheui.x < 0) {
+				aheui.x = aheui.plane[aheui.y].length - 1
+			} else if(aheui.x >= aheui.plane[aheui.y].length && aheui.dx !== 0) {
+				aheui.x = 0
+			}
+
+			aheui.y += aheui.dy
+			if(aheui.y < 0) {
+				aheui.y = aheui.plane.length - 1
+			} else if(aheui.y >= aheui.plane.length) {
+				aheui.y = 0
+			}
 		}
 	}
 
@@ -472,81 +550,6 @@
 				clearInterval(this._interval)
 				this.running = false
 				this.emit('stop')
-			}
-		}
-
-		/**
-		 * @private
-		 * Update the direction vector according to the given Jungseong directive.
-		 * @param {number} jung 0-based Jungseong of an instruction
-		 */
-		_updateDirection(jung) {
-			switch(jung) {
-			case 0: /* ㅏ */
-				this.dx = 1
-				this.dy = 0
-				break
-			case 4: /* ㅓ */
-				this.dx = -1
-				this.dy = 0
-				break
-			case 13: /* ㅜ */
-				this.dx = 0
-				this.dy = 1
-				break
-			case 8: /* ㅗ */
-				this.dx = 0
-				this.dy = -1
-				break
-			
-			case 2: /* ㅑ */
-				this.dx = 2
-				this.dy = 0
-				break
-			case 6: /* ㅕ */
-				this.dx = -2
-				this.dy = 0
-				break
-			case 17: /* ㅠ */
-				this.dx = 0
-				this.dy = 2
-				break
-			case 12: /* ㅛ */
-				this.dx = 0
-				this.dy = -2
-				break
-
-			case 20: /* ㅣ */
-				this.dx = -this.dx
-				break;
-			case 18: /* ㅡ */
-				this.dy = -this.dy
-				break
-			case 19: /* ㅢ */
-				this.dx = -this.dx
-				this.dy = -this.dy
-				break
-			// default: break
-			}
-		}
-
-		/**
-		 * @private
-		 * Moves along the plane by the direction vector.
-		 */
-		_followDirection() {
-			this.x += this.dx
-			if(this.x < 0) {
-				this.x = this.plane[this.y].length - 1
-			} else if(this.x >= this.plane[this.y].length && this.dx !== 0) {
-				this.x = 0
-			}
-
-			this.y += this.dy
-			if(this.y < 0) {
-				this.y = this.plane.length - 1
-			} else if(this.y >= this.plane.length) {
-				this.y = 0
 			}
 		}
 
