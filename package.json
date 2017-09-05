@@ -21,6 +21,7 @@
   "homepage": "https://github.com/WKBae/aheui.js#readme",
   "devDependencies": {
     "google-closure-compiler": "^20170806.0.0",
-    "gulp": "^3.9.1"
+    "gulp": "^3.9.1",
+    "gulp-add-src": "^0.2.0"
   }
 }

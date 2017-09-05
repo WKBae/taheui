@@ -1,11 +1,23 @@
-"use strict";
+'use strict'
 
-(
-/**
- * @param {Object} root
- * @param {undefined=} undefined
- */
- function(root, undefined) {
+goog.provide('aheui')
+
+aheui = (function() {
+	const Stack = require('./stack.js')
+	const Queue = require('./queue.js')
+
+	const Cell = require('./cell.js')
+
+	const operation = require('./operation.js')
+
+	const rawOperation = operation.rawOperation,
+		popOperation = operation.popOperation
+
+	/** @type {!function((Stack|Queue), number)} */
+	const NO_OP = rawOperation(() => {})
+
+	const EMPTY_CELL = new Cell([0, 1, 0], [NO_OP])
+
  	/** @type {!Array<!String>} */
 	const cCho = [ 'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
 	/** @type {!Array<!String>} */
@@ -15,306 +27,6 @@
 	/** @type {!Array<!number>} */
 	const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4, 1, 3, 4, 3, 4, 4, 3]
 	
-	/**
-	 * Single stack storing numbers.
-	 */
-	class Stack {
-		constructor() {
-			/**
-			 * @type {!Array<number>}
-			 * @protected
-			 */
-			this._items = []
-		}
-
-		/**
-		 * Push a number into the stack.
-		 * @param {number} value
-		 */
-		push(value) {
-			this._items.push(value)
-		}
-		/**
-		 * Pop a number from the stack. Returns `undefined` if the stack is empty.
-		 * @return {number|undefined} Popped value
-		 */
-		pop() {
-			var res = this._items.pop()
-			/*if(res === undefined) {
-				// throw new StackEmptyException()
-				return undefined
-			}*/
-			return res
-		}
-
-		/**
-		 * Loops for each element of this stack. Index orders from the bottom(first-in, last-out) to top(last-in, first-out)
-		 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
-		 */
-		every(loop) {
-			for(var i = 0; i < this._items.length; i++) {
-				if(loop(this._items[i], i) === false) break
-			}
-		}
-	}
-
-	/**
-	 * Queue, FIFO data structure storing numbers
-	 */
-	class Queue {
-		constructor() {
-			/**
-			 * @type {?Array<number|?Array>}
-			 * @protected
-			 * The head of the linked list. Using the linked list for better performance on pop() operation.
-			 * Data in the list is represented as an array, [value, next].
-			 */
-			this._head = null
-			/**
-			 * @type {?Array<number|?Array>}
-			 * @protected
-			 * The tail to push the values beyond.
-			 */
-			this._tail = null
-		}
-
-		/**
-		 * Push a number into the stack.
-		 * @param {number} value
-		 */
-		push(value) {
-			var node = [value, null]
-			if(this._tail) {
-				this._tail[1] = node
-				this._tail = node
-			} else {
-				this._tail = this._head = node
-			}
-		}
-		/**
-		 * Pulls a number from the queue. Returns `undefined` if the queue is empty
-		 * @return {number|undefined} Pulled value
-		 */
-		pop() {
-			if(this._head) {
-				var val = /** @type {number} */ (this._head[0])
-				this._head = /** @type {Array<number|?Array>} */ (this._head[1])
-				if(!this._head) this._tail = null
-				return val
-			} else {
-				return undefined
-			}
-		}
-		/**
-		 * Appends the value to the front of the queue, unlike push() which adds to the last.
-		 * @param {number} value
-		 */
-		append(value) {
-			this._head = [value, this._head]
-		}
-
-		/**
-		 * Loops for each element of this queue. Index orders from the front(first-in, first-out) to back(last-in, last-out)
-		 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
-		 */
-		every(loop) {
-			for(var node = this._head, i = 0; node != null; node = node[1], i++) {
-				if(loop(/** @type {number} */ (node[0]), i) === false) break
-			}
-		}
-	}
-
-	
-	/**
-	 * Return an operation which just calls the function given.
-	 * @param {!(function((Stack|Queue), ?, number)|function((Stack|Queue), ?, number):boolean)} operation Operation function to execute
-	 * @return {(function((Stack|Queue), ?, number)|function((Stack|Queue), ?, number):boolean)} operation
-	 */
-	function rawOperation(operation) {
-		return operation
-	}
-
-	/**
-	 * Builds a pop operation, which pops certain amount of values from stack and process them.
-	 * @param {number} count Number of the items to be popped
-	 * @param {!function(...number)} operation Operation to be performed on the popped items
-	 * @param {(function((Stack|Queue), ?, number)|function((Stack|Queue), ?, number):boolean)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
-	 * @return {function((Stack|Queue), number):boolean} Operation function
-	 */
-	function popOperation(count, operation, resultHandler) {
-		var handler = resultHandler || ((stack, result, argument) => stack.push(result))
-
-		if(count == 1) {
-			return function pop1Operate(stack, argument) {
-				/** @type {number|undefined} */
-				var one = stack.pop()
-				if(one === undefined) {
-					return false
-				}
-				return handler(stack, operation(one), argument)
-			}
-		} else if(count == 2) {
-			return function pop2Operate(stack, argument) {
-				/** @type {number|undefined} */
-				var two = stack.pop()
-				if(two === undefined) {
-					return false
-				}
-				/** @type {number|undefined} */
-				var one = stack.pop()
-				if(one === undefined) {
-					if(stack.append) stack.append(two)
-					else stack.push(two)
-					return false
-				}
-				return handler(stack, operation(one, two), argument)
-			}
-		} else {
-			return function popOperate(stack, argument) {
-				/** @type {Array<number>} */
-				var args = []
-				for(var i = count - 1; i >= 0; i--) {
-					args[i] = stack.pop()
-					if(args[i] === undefined) {
-						var push = stack.append || stack.push // (stack instanceof Queue)? stack.append : stack.push
-						for(i++; i < count; i++) {
-							push.call(stack, args[i])
-						}
-						return false
-					}
-				}
-				return handler(stack, operation.apply(this, args), argument)
-			}
-		}
-	}
-
-	class Cell {
-		/**
-		 * Builds a cell with the given character
-		 * @param {string|number|!Array<number>} char Character, parsed or not, representing a cell
-		 * @param {!Array<function((Stack|Queue), number)>} operations List of the operations per each 'Choseong'
-		 */
-		constructor(char, operations) {
-			if(typeof char === 'string' || typeof char === 'number')
-				char = Cell.parseChar(/** @type {string|number} */ (char))
-			/** @private {function((Stack|Queue), number)} */
-			this._op = operations[char[0]]
-			/** @private {number} */
-			this._dir = char[1]
-			/** @private {number} */
-			this._argument = char[2]
-		}
-
-		/** Execute the cell, performs operation execution, direction update, moving the plane
-		 * @param {!Aheui} aheui
-		 */
-		run(aheui) {
-			Cell.updateDirection(aheui, this._dir)
-			
-			var success = this._op(aheui.stacks[aheui.currentStack], this._argument)
-			if(success === false) {
-				Cell.updateDirection(aheui, 19 /* ㅢ, reverse */)
-			}
-
-			Cell.followDirection(aheui)
-		}
-
-		/**
-		 * Parse a Korean character to the array of [Choseong(number), Jungseong(number), Jongseong(number)]
-		 * Any non-Korean or not-complete characters are treated as "애", a no-op character in Aheui
-		 * @param {string|number} c A string(only the first one is used) or a number representing the character code
-		 * @return {!Array<number>}
-		 */
-		static parseChar(c) {
-			if(typeof c === 'string') c = c.charCodeAt(0)
-			if(c < 0xAC00 || c > 0xD7A3) return [11, 1, 0] // default, no-op character
-			c -= 0xAC00
-			return [c/28/21 | 0, (c/28 | 0) % 21, c % 28]
-		}
-
-
-		/**
-		 * @private
-		 * Update the direction vector according to the given Jungseong directive.
-		 * @param {Aheui} aheui Aheui object to update
-		 * @param {number} jung 0-based Jungseong of an instruction
-		 */
-		static updateDirection(aheui, jung) {
-			switch(jung) {
-			case 0: /* ㅏ */
-				aheui.dx = 1
-				aheui.dy = 0
-				break
-			case 4: /* ㅓ */
-				aheui.dx = -1
-				aheui.dy = 0
-				break
-			case 13: /* ㅜ */
-				aheui.dx = 0
-				aheui.dy = 1
-				break
-			case 8: /* ㅗ */
-				aheui.dx = 0
-				aheui.dy = -1
-				break
-			
-			case 2: /* ㅑ */
-				aheui.dx = 2
-				aheui.dy = 0
-				break
-			case 6: /* ㅕ */
-				aheui.dx = -2
-				aheui.dy = 0
-				break
-			case 17: /* ㅠ */
-				aheui.dx = 0
-				aheui.dy = 2
-				break
-			case 12: /* ㅛ */
-				aheui.dx = 0
-				aheui.dy = -2
-				break
-
-			case 20: /* ㅣ */
-				aheui.dx = -aheui.dx
-				break;
-			case 18: /* ㅡ */
-				aheui.dy = -aheui.dy
-				break
-			case 19: /* ㅢ */
-				aheui.dx = -aheui.dx
-				aheui.dy = -aheui.dy
-				break
-			// default: break
-			}
-		}
-
-		/**
-		 * @private
-		 * Moves along the plane by the direction vector.
-		 * @param {Aheui} aheui Aheui object to update
-		 */
-		static followDirection(aheui) {
-			aheui.x += aheui.dx
-			if(aheui.x < 0) {
-				aheui.x = aheui.plane[aheui.y].length - 1
-			} else if(aheui.x >= aheui.plane[aheui.y].length && aheui.dx !== 0) {
-				aheui.x = 0
-			}
-
-			aheui.y += aheui.dy
-			if(aheui.y < 0) {
-				aheui.y = aheui.plane.length - 1
-			} else if(aheui.y >= aheui.plane.length) {
-				aheui.y = 0
-			}
-		}
-	}
-
-	/** @type {!function((Stack|Queue), number)} */
-	const NO_OP = rawOperation(() => {})
-	/** @type {!Cell} */
-	const EMPTY_CELL = new Cell([0, 1, 0], [NO_OP])
 
 	/**
 	 * Aheui script interpreter
@@ -662,29 +374,11 @@
 		 }
 	};
 
-	var aheui = {
+	return {
 		'Aheui': Aheui,
 
 		'cho': cCho,
 		'jung': cJung,
 		'jong': cJong
-	};
-	
-	/** @suppress {checkVars} */
-	(function register() {
-		// benefits code minification, instead of 'undefined' literal
-		var undefinedStr = typeof undefined
-		if(typeof exports !== undefinedStr) {
-			if(typeof module !== undefinedStr && module.exports) {
-				exports = module.exports = aheui
-			}
-			exports['aheui'] = aheui
-		} else if (typeof define === 'function' && define.amd) {
-			define([], function() {
-				return aheui;
-			});
-		} else {
-			root['aheui'] = aheui
-		}
-	})()
-})(this);
+	}
+})()
