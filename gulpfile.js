@@ -6,7 +6,7 @@ const gulp = require('gulp'),
 gulp.task('compile', function() {
 	return gulp.src(["./src/*.js", "!./src/export.js"], {base: './src/'})
 		.pipe(closureCompiler({
-			compilation_level: 'WHITESPACE_ONLY',
+			compilation_level: 'SIMPLE', // SIMPLE-SIMPLE takes longer, but produces shorter result than WHITESPACE-SIMPLE
 			warning_level: 'VERBOSE',
 
 			process_common_js_modules: true,
@@ -14,6 +14,13 @@ gulp.task('compile', function() {
 			entry_point: 'goog:aheui',
 
 			js_output_file: '_aheui.js',
+			output_wrapper: [
+					"goog.provide('aheui');",
+					"aheui = function(){",
+						"%output%",
+						"return aheui",
+					"}()"
+				].join('\n')
 		}))
 		.pipe(addsrc("./src/export.js"))
 		.pipe(closureCompiler({
@@ -33,7 +40,7 @@ gulp.task('compile', function() {
 gulp.task('compile-pretty', function() {
 	return gulp.src(["./src/*.js", "!./src/export.js"], {base: './src/'})
 		.pipe(closureCompiler({
-			compilation_level: 'WHITESPACE_ONLY',
+			compilation_level: 'SIMPLE',
 			warning_level: 'VERBOSE',
 
 			process_common_js_modules: true,
@@ -41,6 +48,13 @@ gulp.task('compile-pretty', function() {
 			entry_point: 'goog:aheui',
 
 			js_output_file: '_aheui.js',
+			output_wrapper: [
+					"goog.provide('aheui');",
+					"aheui = function(){",
+						"%output%",
+						"return aheui",
+					"}()"
+				].join('\n')
 		}))
 		.pipe(addsrc("./src/export.js"))
 		.pipe(closureCompiler({
