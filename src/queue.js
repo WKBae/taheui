@@ -1,8 +1,12 @@
 'use strict'
 // TODO @extend @nosideeffects
 module.exports = (function() {
+
+	const Stack = require('./stack.js')
+
 	/**
 	 * Queue, FIFO data structure storing numbers
+	 * @extends {Stack}
 	 */
 	class Queue {
 		constructor() {
@@ -22,8 +26,7 @@ module.exports = (function() {
 		}
 
 		/**
-		 * Push a number into the stack.
-		 * @param {number} value
+		 * @override
 		 */
 		push(value) {
 			var node = [value, null]
@@ -37,6 +40,7 @@ module.exports = (function() {
 		/**
 		 * Pulls a number from the queue. Returns `undefined` if the queue is empty
 		 * @return {number|undefined} Pulled value
+		 * @override
 		 */
 		pop() {
 			if(this._head) {
@@ -59,6 +63,7 @@ module.exports = (function() {
 		/**
 		 * Loops for each element of this queue. Index orders from the front(first-in, first-out) to back(last-in, last-out)
 		 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
+		 * @override
 		 */
 		every(loop) {
 			for(var node = this._head, i = 0; node != null; node = node[1], i++) {

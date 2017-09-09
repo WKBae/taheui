@@ -13,7 +13,7 @@ aheui = (function() {
 	const rawOperation = operation.rawOperation,
 		popOperation = operation.popOperation
 
-	/** @type {!function((Stack|Queue), number)} */
+	/** @type {!function(Stack, number)} */
 	const NO_OP = rawOperation(() => {})
 
 	const EMPTY_CELL = new Cell([0, 1, 0], [NO_OP])

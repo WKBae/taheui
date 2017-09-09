@@ -8,7 +8,7 @@ module.exports = (function() {
 		/**
 		 * Builds a cell with the given character
 		 * @param {string|number|!Array<number>} char Character, parsed or not, representing a cell
-		 * @param {!Array<function((Stack|Queue), number)>} operations List of the operations per each 'Choseong'
+		 * @param {!Array<function(Stack, number)>} operations List of the operations per each 'Choseong'
 		 */
 		constructor(char, operations) {
 			if(typeof char === 'string' || typeof char === 'number')

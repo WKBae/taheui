@@ -6,8 +6,8 @@ module.exports = (function() {
 
 	/**
 	 * Return an operation which just calls the function given.
-	 * @param {!(function((Stack|Queue), number)|function((Stack|Queue), number):boolean)} operation Operation function to execute
-	 * @return {(function((Stack|Queue), number)|function((Stack|Queue), number):boolean)} operation
+	 * @param {!(function(Stack, number)|function(Stack, number):boolean)} operation Operation function to execute
+	 * @return {(function(Stack, number)|function(Stack, number):boolean)} operation
 	 */
 	function rawOperation(operation) {
 		return operation
@@ -17,8 +17,8 @@ module.exports = (function() {
 	 * Builds a pop operation, which pops certain amount of values from stack and process them.
 	 * @param {number} count Number of the items to be popped
 	 * @param {!function(...number)} operation Operation to be performed on the popped items
-	 * @param {(function((Stack|Queue), ?, number)|function((Stack|Queue), ?, number):boolean)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
-	 * @return {function((Stack|Queue), number):boolean} Operation function
+	 * @param {(function(Stack, ?, number)|function(Stack, ?, number):boolean)=} resultHandler Handler of the return value of the `operation` function. Pushes into the stack by default.
+	 * @return {function(Stack, number):boolean} Operation function
 	 */
 	function popOperation(count, operation, resultHandler) {
 		var handler = resultHandler || ((stack, result, argument) => stack.push(result))
