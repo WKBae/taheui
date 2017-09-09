@@ -13,20 +13,139 @@ aheui = (function() {
 	const rawOperation = operation.rawOperation,
 		popOperation = operation.popOperation
 
+
 	/** @type {!function(Stack, number)} */
 	const NO_OP = rawOperation(() => {})
 
 	const EMPTY_CELL = new Cell([0, 1, 0], [NO_OP])
 
+
  	/** @type {!Array<!String>} */
-	const cCho = [ 'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
+	const choArr = [ 'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
 	/** @type {!Array<!String>} */
-	const cJung = [ 'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ' ]
+	const jungArr = [ 'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ' ]
 	/** @type {!Array<!String>} */
-	const cJong = [ '', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
+	const jongArr = [ '', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
+
+
+	function buildOperations(aheui) {
+		return [
+		/* ㄱ */ NO_OP,
+		/* ㄲ */ NO_OP,
+		/* ㄴ */ popOperation(2, (a, b) => a / b |0),
+		/* ㄷ */ popOperation(2, (a, b) => a + b),
+		/* ㄸ */ popOperation(2, (a, b) => a * b),
+		/* ㄹ */ popOperation(2, (a, b) => a % b),
+		/* ㅁ */ popOperation(1, (a) => a,
+					(stack, result, argument) => {
+						if(argument === 21 /* ㅇ */) {
+							aheui.emit('integer', result)
+						} else if(argument === 27 /* ㅎ */) {
+							var char
+							if(result <= 0xFFFF || result > 0x10FFFF) {
+								char = String.fromCharCode(result)
+							} else { // build surrogate pair
+								result -= 0x10000
+								char = String.fromCharCode(
+									(result >> 10) + 0xD800,
+									(result % 0x400) + 0xDC00
+								)
+							}
+							aheui.emit('character', char)
+						}
+					}),
+		/* ㅂ */ rawOperation((stack, argument) => {
+						if(argument === 21 /* ㅇ */) {
+							stack.push(aheui._intIn.call(aheui))
+						} else if(argument === 27 /* ㅎ */) {
+							var char = aheui._charIn.call(aheui)
+							stack.push(typeof char === 'string'? char.charCodeAt(0) : char)
+						} else {
+							stack.push(jongCount[argument])
+						}
+					}),
+		/* ㅃ */ popOperation(1, (a) => a,
+					(stack, a) => {
+						if(stack.append) {
+							stack.append(a)
+							stack.append(a)
+						} else {
+							stack.push(a)
+							stack.push(a)
+						}
+					}),
+		/* ㅅ */ rawOperation((stack, argument) => {
+						aheui.currentStack = argument
+					}),
+		/* ㅆ */ popOperation(1, (a) => a,
+					(stack, result, argument) => {
+						aheui.stacks[argument].push(result)
+					}),
+		/* ㅇ */ NO_OP,
+		/* ㅈ */ popOperation(2, (a, b) => a >= b? 1 : 0),
+		/* ㅉ */ NO_OP,
+		/* ㅊ */ popOperation(1, (a) => a != 0,
+					(stack, result) => {
+						if(!result) {
+							aheui.dx = -aheui.dx
+							aheui.dy = -aheui.dy
+						}
+					}),
+		/* ㅋ */ NO_OP,
+		/* ㅌ */ popOperation(2, (a, b) => a - b),
+		/* ㅍ */ popOperation(2, (a, b) => [b, a],
+					(stack, result) => {
+						if(stack.append) {
+							stack.append(result[0])
+							stack.append(result[1])
+						} else {
+							stack.push(result[0])
+							stack.push(result[1])
+						}
+					}),
+		/* ㅎ */ rawOperation((stack) => {
+					aheui.exitCode = stack.pop() || 0
+				})
+		]
+	}
+	
+	const DIR_KEEP = 0
+	const DIR_OVERWRITE = 0b1
+	const DIR_X = 0b10, DIR_Y = 0b00
+	const DIR_TWO = 0b100
+	const DIR_PLUS = 0, DIR_MINUS = 0b1000
+
+	const DIR_UP = DIR_OVERWRITE | DIR_MINUS | DIR_Y,
+		DIR_DOWN = DIR_OVERWRITE | DIR_PLUS | DIR_Y,
+		DIR_LEFT = DIR_OVERWRITE | DIR_MINUS | DIR_X,
+		DIR_RIGHT = DIR_OVERWRITE | DIR_PLUS | DIR_X
+	/** @type {!Array<!number>} */
+	const jungDirection = [
+		/* ㅏ */ DIR_RIGHT,
+			/* ㅐ */ DIR_KEEP,
+		/* ㅑ */ DIR_TWO | DIR_RIGHT,
+			/* ㅒ */ DIR_KEEP,
+		/* ㅓ */ DIR_LEFT,
+			/* ㅔ */ DIR_KEEP,
+		/* ㅕ */ DIR_TWO | DIR_LEFT,
+			/* ㅖ */ DIR_KEEP,
+		/* ㅗ */ DIR_UP,
+			/* ㅘ */ DIR_KEEP,
+			/* ㅙ */ DIR_KEEP,
+			/* ㅚ */ DIR_KEEP,
+		/* ㅛ */ DIR_TWO | DIR_UP,
+		/* ㅜ */ DIR_DOWN,
+			/* ㅝ */ DIR_KEEP,
+			/* ㅞ */ DIR_KEEP,
+			/* ㅟ */ DIR_KEEP,
+		/* ㅠ */ DIR_TWO | DIR_DOWN,
+		/* ㅡ */ DIR_KEEP | DIR_MINUS | DIR_Y,
+		/* ㅢ */ DIR_KEEP | DIR_MINUS | DIR_X | DIR_Y,
+		/* ㅣ */ DIR_KEEP | DIR_MINUS | DIR_X
+	]
+
 	/** @type {!Array<!number>} */
 	const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4, 1, 3, 4, 3, 4, 4, 3]
-	
 
 	/**
 	 * Aheui script interpreter
@@ -42,92 +161,18 @@ aheui = (function() {
 
 			this._init()
 
-			var that = this
-			var operations = [
-			/* ㄱ */ NO_OP,
-			/* ㄲ */ NO_OP,
-			/* ㄴ */ popOperation(2, (a, b) => a / b |0),
-			/* ㄷ */ popOperation(2, (a, b) => a + b),
-			/* ㄸ */ popOperation(2, (a, b) => a * b),
-			/* ㄹ */ popOperation(2, (a, b) => a % b),
-			/* ㅁ */ popOperation(1, (a) => a,
-						(stack, result, argument) => {
-							if(argument === 21 /* ㅇ */) {
-								that.emit('integer', result)
-							} else if(argument === 27 /* ㅎ */) {
-								var char
-								if(result <= 0xFFFF || result > 0x10FFFF) {
-									char = String.fromCharCode(result)
-								} else { // build surrogate pair
-									result -= 0x10000
-									char = String.fromCharCode((result >> 10) + 0xD800, (result % 0x400) + 0xDC00)
-								}
-								that.emit('character', char)
-							}
-						}),
-			/* ㅂ */ rawOperation((stack, argument) => {
-							if(argument === 21 /* ㅇ */) {
-								stack.push(that._intIn.call(that))
-							} else if(argument === 27 /* ㅎ */) {
-								var char = that._charIn.call(that)
-								stack.push(typeof char === 'string'? char.charCodeAt(0) : char)
-							} else {
-								stack.push(jongCount[argument])
-							}
-						}),
-			/* ㅃ */ popOperation(1, (a) => a,
-						(stack, a) => {
-							if(stack.append) {
-								stack.append(a)
-								stack.append(a)
-							} else {
-								stack.push(a)
-								stack.push(a)
-							}
-						}),
-			/* ㅅ */ rawOperation((stack, argument) => {
-							that.currentStack = argument
-						}),
-			/* ㅆ */ popOperation(1, (a) => a,
-						(stack, result, argument) => {
-							that.stacks[argument].push(result)
-						}),
-			/* ㅇ */ NO_OP,
-			/* ㅈ */ popOperation(2, (a, b) => a >= b? 1 : 0),
-			/* ㅉ */ NO_OP,
-			/* ㅊ */ popOperation(1, (a) => a != 0,
-						(stack, result) => {
-							if(!result) {
-								that.dx = -that.dx
-								that.dy = -that.dy
-							}
-						}),
-			/* ㅋ */ NO_OP,
-			/* ㅌ */ popOperation(2, (a, b) => a - b),
-			/* ㅍ */ popOperation(2, (a, b) => [b, a],
-						(stack, result) => {
-							if(stack.append) {
-								stack.append(result[0])
-								stack.append(result[1])
-							} else {
-								stack.push(result[0])
-								stack.push(result[1])
-							}
-						}),
-			/* ㅎ */ rawOperation((stack) => {
-						that.exitCode = stack.pop() || 0
-					})
-			]
+			/** @type {Array<function(Stack, number)>} */
+			var operations = buildOperations(this)
 
 			var lines = this.script.split(/\r?\n/)
 			/** @type {Array<Array<Cell>>} */
 			this.plane = []
 			lines.forEach((line, i) => {
-				that.plane[i] = []
+				this.plane[i] = []
 				for(var j = 0; j < line.length; j++) {
-					that.plane[i][j] = new Cell(line.charCodeAt(j), operations)
+					this.plane[i][j] = new Cell(line.charCodeAt(j), operations, jungDirection)
 				}
-			})
+			}, this)
 
 			/** @private {!Object<string, Array<function(this:Aheui, ...?)>>} */
 			this._callbacks = {}
@@ -146,7 +191,7 @@ aheui = (function() {
 		_init() {
 			/** @type {!Array<Stack|Queue>} */
 			this.stacks = []
-			for(var i = 0; i < cJong.length; i++) {
+			for(var i = 0; i < jongArr.length; i++) {
 				if(i == 21 /* 'ㅇ' */) this.stacks[i] = new Queue()
 				else this.stacks[i] = new Stack()
 			}
@@ -232,7 +277,7 @@ aheui = (function() {
 		/**
 		 * @private
 		 * Setup batches with the given count
-		 * @param {number} count Number of cell runs in a batch
+		 * @param {number} count Number of cells to run in a batch
 		 */
 		_batch(count) {
 			var that = this
@@ -262,6 +307,50 @@ aheui = (function() {
 				clearInterval(this._interval)
 				this.running = false
 				this.emit('stop')
+			}
+		}
+
+		/**
+		 * @private
+		 * Update the direction vector according to the given direction directive.
+		 * @param {number} dir The direction bits of an instruction
+		 */
+		updateDirection(dir) {
+			var modX = dir | DIR_X, modY = dir | DIR_Y
+
+			if(dir | DIR_OVERWRITE) {
+				this.dx = modX? 1 : 0
+				this.dy = modY? 1 : 0
+			}
+
+			if(dir | DIR_TWO) {
+				if(modX) this.dx *= 2
+				if(modY) this.dy *= 2
+			}
+
+			if(dir | DIR_MINUS) {
+				if(modX) this.dx = -this.dx
+				if(modY) this.dy = -this.dy
+			}
+		}
+
+		/**
+		 * @private
+		 * Moves along the plane by the direction vector.
+		 */
+		proceedPlane() {
+			this.x += this.dx
+			if(this.x < 0) {
+				this.x = this.plane[this.y].length - 1
+			} else if(this.x >= this.plane[this.y].length && this.dx !== 0) {
+				this.x = 0
+			}
+
+			this.y += this.dy
+			if(this.y < 0) {
+				this.y = this.plane.length - 1
+			} else if(this.y >= this.plane.length) {
+				this.y = 0
 			}
 		}
 
@@ -377,8 +466,8 @@ aheui = (function() {
 	return {
 		'Aheui': Aheui,
 
-		'cho': cCho,
-		'jung': cJung,
-		'jong': cJong
+		'cho': choArr,
+		'jung': jungArr,
+		'jong': jongArr
 	}
 })()
