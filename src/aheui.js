@@ -14,12 +14,6 @@ aheui = (function() {
 		popOperation = operation.popOperation
 
 
-	/** @type {!function(Stack, number)} */
-	const NO_OP = rawOperation(() => {})
-
-	const EMPTY_CELL = new Cell([0, 1, 0], [NO_OP])
-
-
  	/** @type {!Array<!String>} */
 	const choArr = [ 'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
 	/** @type {!Array<!String>} */
@@ -28,6 +22,11 @@ aheui = (function() {
 	const jongArr = [ '', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ]
 
 
+	/**
+	 * Makes an operations array for the Aheui object given.
+	 * @param {Aheui} aheui
+	 * @return {!Array<function(Stack, number)>}
+	 */
 	function buildOperations(aheui) {
 		return [
 		/* ㄱ */ NO_OP,
@@ -147,6 +146,13 @@ aheui = (function() {
 	/** @type {!Array<!number>} */
 	const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4, 1, 3, 4, 3, 4, 4, 3]
 
+
+	/** @type {!function(Stack, number)} */
+	const NO_OP = rawOperation(() => {})
+	/** @type {!Cell} */
+	const EMPTY_CELL = new Cell([0, 0, 0], [NO_OP], [DIR_KEEP])
+
+
 	/**
 	 * Aheui script interpreter
 	 */
@@ -161,7 +167,7 @@ aheui = (function() {
 
 			this._init()
 
-			/** @type {Array<function(Stack, number)>} */
+			/** @type {!Array<function(Stack, number)>} */
 			var operations = buildOperations(this)
 
 			var lines = this.script.split(/\r?\n/)
@@ -311,7 +317,6 @@ aheui = (function() {
 		}
 
 		/**
-		 * @private
 		 * Update the direction vector according to the given direction directive.
 		 * @param {number} dir The direction bits of an instruction
 		 */
@@ -335,7 +340,6 @@ aheui = (function() {
 		}
 
 		/**
-		 * @private
 		 * Moves along the plane by the direction vector.
 		 */
 		proceedPlane() {

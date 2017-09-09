@@ -1,8 +1,9 @@
 'use strict'
 
+const Stack = require('./stack.js')
+const Queue = require('./queue.js')
+
 module.exports = (function() {
-	const Stack = require('./stack.js')
-	const Queue = require('./queue.js')
 
 	/**
 	 * Return an operation which just calls the function given.
@@ -66,7 +67,6 @@ module.exports = (function() {
 			}
 		}
 	}
-
 
 	return {
 		'rawOperation': rawOperation,

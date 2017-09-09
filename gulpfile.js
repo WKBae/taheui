@@ -13,6 +13,7 @@ gulp.task('compile', function() {
 			dependency_mode: 'STRICT',
 			entry_point: 'goog:aheui',
 
+			preserve_type_annotations: true,
 			js_output_file: '_aheui.js',
 			output_wrapper: [
 					"goog.provide('aheui');",
@@ -47,6 +48,7 @@ gulp.task('compile-pretty', function() {
 			dependency_mode: 'STRICT',
 			entry_point: 'goog:aheui',
 
+			preserve_type_annotations: true,
 			js_output_file: '_aheui.js',
 			output_wrapper: [
 					"goog.provide('aheui');",
