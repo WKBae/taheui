@@ -33,8 +33,8 @@ class Cell {
 		var success = this._op(aheui.stacks[aheui.currentStack], this._argument)
 		if(success === false) {
 			const DIR_KEEP = 0
-			const DIR_X = 0b10, DIR_Y = 0b00
-			const DIR_MINUS = 0b1000
+			const DIR_X = 0b100, DIR_Y = 0b010
+			const DIR_MINUS = 0b10000
 			aheui.updateDirection(DIR_MINUS | DIR_KEEP | DIR_X | DIR_Y) // reverse
 		}
 

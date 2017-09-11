@@ -110,9 +110,9 @@ aheui = (function() {
 	
 	const DIR_KEEP = 0
 	const DIR_OVERWRITE = 0b1
-	const DIR_X = 0b10, DIR_Y = 0b00
-	const DIR_TWO = 0b100
-	const DIR_PLUS = 0, DIR_MINUS = 0b1000
+	const DIR_X = 0b100, DIR_Y = 0b010
+	const DIR_TWO = 0b1000
+	const DIR_PLUS = 0, DIR_MINUS = 0b10000
 
 	const DIR_UP = DIR_OVERWRITE | DIR_MINUS | DIR_Y,
 		DIR_DOWN = DIR_OVERWRITE | DIR_PLUS | DIR_Y,
@@ -321,19 +321,19 @@ aheui = (function() {
 		 * @param {number} dir The direction bits of an instruction
 		 */
 		updateDirection(dir) {
-			var modX = dir | DIR_X, modY = dir | DIR_Y
+			var modX = dir & DIR_X, modY = dir & DIR_Y
 
-			if(dir | DIR_OVERWRITE) {
+			if(dir & DIR_OVERWRITE) {
 				this.dx = modX? 1 : 0
 				this.dy = modY? 1 : 0
 			}
 
-			if(dir | DIR_TWO) {
+			if(dir & DIR_TWO) {
 				if(modX) this.dx *= 2
 				if(modY) this.dy *= 2
 			}
 
-			if(dir | DIR_MINUS) {
+			if(dir & DIR_MINUS) {
 				if(modX) this.dx = -this.dx
 				if(modY) this.dy = -this.dy
 			}
