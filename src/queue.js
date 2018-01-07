@@ -9,45 +9,75 @@ const Stack = require('./stack.js')
 class Queue {
 	constructor() {
 		/**
-		 * @type {?Array<number|?Array>}
+		 * @type {Array<number>}
 		 * @protected
-		 * The head of the linked list. Using the linked list for better performance on pop() operation.
-		 * Data in the list is represented as an array, [value, next].
+		 * The ring queue array.
 		 */
-		this._head = null
+		this._array = [];
 		/**
-		 * @type {?Array<number|?Array>}
+		 * @type {number}
 		 * @protected
-		 * The tail to push the values beyond.
+		 * Size of the ring queue. Although the arrays in JS are dynamic, we use fixed size array for better performance & space.
 		 */
-		this._tail = null
+		this._size = 4;
+		/**
+		 * @type {number}
+		 * @protected
+		 * The head position of the ring queue.
+		 */
+		this._head = 0;
+		/**
+		 * @type {number}
+		 * @protected
+		 * The tail position, the location to insert, of the ring queue.
+		 */
+		this._tail = 0;
+	}
+
+	/**
+	 * Double the size of array.
+	 */
+	_expand() {
+		var sliced = this._array.slice(this._head);
+		
+		this._size *= 2;
+		this._array.length = this._size - sliced.length;
+		this._array = this._array.concat(sliced);
+
+		var newHead = this._size - sliced.length;
+		if(this._tail >= this._head) {
+			this._tail = (newHead + (this._tail - this._head)) % this._size;
+		}
+		this._head = newHead;
 	}
 
 	/**
 	 * @override
+	 * Pushes a value into this queue, at last.
+	 * @param {number} value The value to put on this queue
 	 */
 	push(value) {
-		var node = [value, null]
-		if(this._tail) {
-			this._tail[1] = node
-			this._tail = node
-		} else {
-			this._tail = this._head = node
+		var newTail = (this._tail + 1) % this._size;
+		if(newTail == this._head) {
+			this._expand();
+			newTail = (this._tail + 1) % this._size;
 		}
+		this._array[this._tail] = value;
+		this._tail = newTail;
 	}
 	/**
+	 * @override
 	 * Pulls a number from the queue. Returns `undefined` if the queue is empty
 	 * @return {number|undefined} Pulled value
-	 * @override
 	 */
 	pop() {
-		if(this._head) {
-			var val = /** @type {number} */ (this._head[0])
-			this._head = /** @type {Array<number|?Array>} */ (this._head[1])
-			if(!this._head) this._tail = null
-			return val
+		if(this._head == this._tail) {
+			return undefined;
 		} else {
-			return undefined
+			var val = this._array[this._head];
+			this._head = (this._head + 1) % this._size;
+			// TODO reduce array size
+			return val;
 		}
 	}
 	/**
@@ -55,17 +85,23 @@ class Queue {
 	 * @param {number} value
 	 */
 	append(value) {
-		this._head = [value, this._head]
+		var newHead = (this._head - 1 + this._size) % this._size;
+		if(newHead == this._tail) {
+			this._expand();
+			newHead = (this._head - 1 + this._size) % this._size;
+		}
+		this._head = newHead;
+		this._array[newHead] = value;
 	}
 
 	/**
-	 * Loops for each element of this queue. Index orders from the front(first-in, first-out) to back(last-in, last-out)
-	 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
 	 * @override
+	 * Loops for each element of this queue. Index orders from the front to back(first-in first-out)
+	 * @param {!function(number, number):?boolean} loop Loop function with parameters (element, index), optionally returns false to break, called for every elements.
 	 */
 	every(loop) {
-		for(var node = this._head, i = 0; node != null; node = node[1], i++) {
-			if(loop(/** @type {number} */ (node[0]), i) === false) break
+		for(var idx = this._head, i = 0; idx != this._tail; idx = (idx + 1) % this._size, i++) {
+			if(loop(this._array[idx], i) === false) break;
 		}
 	}
 }
