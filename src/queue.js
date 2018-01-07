@@ -1,6 +1,6 @@
 'use strict'
 
-const Stack = require('./stack.js')
+const Stack = require('./stack.js');
 
 /**
  * Queue, FIFO data structure storing numbers

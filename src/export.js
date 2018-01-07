@@ -7,14 +7,14 @@ goog.require('aheui');
 (function register(root) {
 	if(typeof exports !== 'undefined') {
 		if(typeof module !== 'undefined' && module.exports) {
-			exports = module.exports = aheui
+			exports = module.exports = aheui;
 		}
-		exports['aheui'] = aheui
+		exports['aheui'] = aheui;
 	} else if (typeof define === 'function' && define.amd) {
 		define([], function() {
 			return aheui;
 		});
 	} else {
-		root['aheui'] = aheui
+		root['aheui'] = aheui;
 	}
-})(this)
+})(this);

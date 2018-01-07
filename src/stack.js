@@ -9,7 +9,7 @@ class Stack {
 		 * @type {!Array<number>}
 		 * @protected
 		 */
-		this._items = []
+		this._items = [];
 	}
 
 	/**
@@ -17,19 +17,19 @@ class Stack {
 	 * @param {number} value
 	 */
 	push(value) {
-		this._items.push(value)
+		this._items.push(value);
 	}
 	/**
 	 * Pop a number from the stack. Returns `undefined` if the stack is empty.
 	 * @return {number|undefined} Popped value
 	 */
 	pop() {
-		var res = this._items.pop()
+		var res = this._items.pop();
 		/*if(res === undefined) {
 			// throw new StackEmptyException()
 			return undefined
 		}*/
-		return res
+		return res;
 	}
 
 	/**
@@ -38,9 +38,9 @@ class Stack {
 	 */
 	every(loop) {
 		for(var i = 0; i < this._items.length; i++) {
-			if(loop(this._items[i], i) === false) break
+			if(loop(this._items[i], i) === false) break;
 		}
 	}
 }
 
-module.exports = Stack
+module.exports = Stack;
