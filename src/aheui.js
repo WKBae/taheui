@@ -1,17 +1,14 @@
-'use strict'
+import Stack from './stack.js';
+import Queue from './queue.js';
 
-goog.provide('aheui')
+import Cell from './cell.js';
+import operation from './operation.js';
 
 aheui = (function() {
-	const Stack = require('./stack.js');
-	const Queue = require('./queue.js');
+	'use strict';
 
-	const Cell = require('./cell.js');
-
-	const operation = require('./operation.js');
-
-	const rawOperation = operation.rawOperation,
-		popOperation = operation.popOperation
+	const rawOperation = operation['rawOperation'],
+		popOperation = operation['popOperation'];
 
 
  	/** @type {!Array<!String>} */

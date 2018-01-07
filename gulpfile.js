@@ -6,27 +6,26 @@ const gulp = require('gulp'),
 gulp.task('compile', function() {
 	return gulp.src(["./src/*.js", "!./src/export.js"], {base: './src/'})
 		.pipe(closureCompiler({
-			compilation_level: 'SIMPLE', // SIMPLE-SIMPLE takes longer, but produces shorter result than WHITESPACE-SIMPLE
+			compilation_level: 'ADVANCED', 
 			warning_level: 'VERBOSE',
 
-			process_common_js_modules: true,
 			dependency_mode: 'STRICT',
 			entry_point: 'goog:aheui',
 
-			preserve_type_annotations: true,
+			externs: ['aheui.extern.js'],
 			js_output_file: '_aheui.js',
 			output_wrapper: [
 					"goog.provide('aheui');",
-					"aheui = function(){",
+					"aheui = (function(){",
 						"%output%",
-						"return aheui",
-					"}()"
+						"return aheui;",
+					"})();"
 				].join('\n')
 		}))
 		.pipe(addsrc("./src/export.js"))
 		.pipe(closureCompiler({
-			compilation_level: 'SIMPLE', // TODO ADVANCED
-			warning_level: 'VERBOSE',
+			compilation_level: 'SIMPLE',
+			warning_level: 'QUIET',
 			language_in: 'ECMASCRIPT6_STRICT',
 			language_out: 'ECMASCRIPT5_STRICT',
 
@@ -41,29 +40,28 @@ gulp.task('compile', function() {
 gulp.task('compile-pretty', function() {
 	return gulp.src(["./src/*.js", "!./src/export.js"], {base: './src/'})
 		.pipe(closureCompiler({
-			compilation_level: 'SIMPLE',
+			compilation_level: 'ADVANCED',
 			warning_level: 'VERBOSE',
 
-			process_common_js_modules: true,
 			dependency_mode: 'STRICT',
 			entry_point: 'goog:aheui',
 
-			preserve_type_annotations: true,
+			externs: ['aheui.extern.js'],
 			js_output_file: '_aheui.js',
 			output_wrapper: [
 					"goog.provide('aheui');",
-					"aheui = function(){",
+					"aheui = (function(){",
 						"%output%",
-						"return aheui",
-					"}()"
+						"return aheui;",
+					"})();"
 				].join('\n')
 		}))
 		.pipe(addsrc("./src/export.js"))
 		.pipe(closureCompiler({
 			formatting: 'pretty_print',
 
-			compilation_level: 'SIMPLE', // TODO ADVANCED
-			warning_level: 'VERBOSE',
+			compilation_level: 'SIMPLE',
+			warning_level: 'QUIET',
 			language_in: 'ECMASCRIPT6_STRICT',
 			language_out: 'ECMASCRIPT5_STRICT',
 

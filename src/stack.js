@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 /**
  * Single stack storing numbers.
@@ -43,4 +43,4 @@ class Stack {
 	}
 }
 
-module.exports = Stack;
+export default Stack;

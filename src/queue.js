@@ -1,6 +1,6 @@
-'use strict'
+'use strict';
 
-const Stack = require('./stack.js');
+import Stack from './stack.js';
 
 /**
  * Queue, FIFO data structure storing numbers
@@ -106,4 +106,4 @@ class Queue {
 	}
 }
 
-module.exports = Queue
+export default Queue;

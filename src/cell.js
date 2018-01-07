@@ -1,7 +1,7 @@
-'use strict'
+'use strict';
 
-const Stack = require('./stack.js');
-const Queue = require('./queue.js');
+import Stack from './stack.js';
+import Queue from './queue.js';
 
 /**
  * Object representing a single cell in the Aheui script plane.
@@ -56,4 +56,4 @@ class Cell {
 	}
 }
 
-module.exports = Cell;
+export default Cell;

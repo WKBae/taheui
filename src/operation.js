@@ -1,9 +1,9 @@
-'use strict'
+'use strict';
 
-const Stack = require('./stack.js')
-const Queue = require('./queue.js')
+import Stack from './stack.js';
+import Queue from './queue.js';
 
-module.exports = (function() {
+export default (function() {
 
 	/**
 	 * Return an operation which just calls the function given.
@@ -71,5 +71,5 @@ module.exports = (function() {
 	return {
 		'rawOperation': rawOperation,
 		'popOperation': popOperation,
-	}
-})()
+	};
+})();
