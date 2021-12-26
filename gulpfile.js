@@ -2,7 +2,7 @@ const gulp = require('gulp'),
 	closureCompiler = require('google-closure-compiler').gulp(),
 	child_process = require('child_process')
 
-gulp.task('compile', function() {
+function compile() {
 	return gulp.src('./src/aheui.js', {base: './'})
 		.pipe(closureCompiler({
 			compilation_level: 'SIMPLE', // TODO ADVANCED
@@ -12,9 +12,9 @@ gulp.task('compile', function() {
 			js_output_file: 'aheui.min.js'
 		}))
 		.pipe(gulp.dest('./dist/'))
-})
+}
 
-gulp.task('compile-pretty', function() {
+function compilePretty() {
 	return gulp.src('./src/aheui.js', {base: './'})
 		.pipe(closureCompiler({
 			compilation_level: 'SIMPLE', // TODO ADVANCED
@@ -25,12 +25,15 @@ gulp.task('compile-pretty', function() {
 			formatting: 'pretty_print'
 		}))
 		.pipe(gulp.dest('./dist/'))
-})
+}
 
-gulp.task('test', function(callback) {
+function test(callback) {
 	var child = child_process.exec('./test/snippets-standard.sh', callback)
 	child.stdout.pipe(process.stdout)
 	child.stderr.pipe(process.stderr)
-})
+}
 
-gulp.task('default', ['compile'])
+exports.compile = compile
+exports.compilePretty = compilePretty
+exports.test = test
+exports.default = compile
