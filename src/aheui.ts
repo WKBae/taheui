@@ -255,7 +255,7 @@ type AheuiEvents = {
 	'start': NoArgEventHandler
 	'step': NoArgEventHandler
 	'stop': NoArgEventHandler
-	'end': NoArgEventHandler
+	'end': NumberEventHandler
 	'reset': NoArgEventHandler
 	'integer': NumberEventHandler
 	'character': CharEventHandler
@@ -432,7 +432,7 @@ class Aheui {
 			if (this.exitCode === null) {
 				this.emit('stop')
 			} else {
-				this.emit('end')
+				this.emit('end', this.exitCode)
 			}
 		}
 	}
@@ -454,7 +454,7 @@ class Aheui {
 				this.step()
 			}
 			this.running = false
-			this.emit('end')
+			this.emit('end', this.exitCode)
 		} else {
 			this._batch(10000)
 		}
@@ -477,7 +477,7 @@ class Aheui {
 				this.running = false
 				if (this._interval) clearInterval(this._interval)
 				this._interval = null
-				this.emit('end')
+				this.emit('end', this.exitCode)
 			}
 		}, 0)
 	}
