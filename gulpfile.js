@@ -1,9 +1,13 @@
 const gulp = require('gulp'),
 	closureCompiler = require('google-closure-compiler').gulp(),
-	child_process = require('child_process')
+	child_process = require('child_process'),
+	ts = require("gulp-typescript"),
+	tsProject = ts.createProject("tsconfig.json")
 
 function compile() {
-	return gulp.src('./src/aheui.js', {base: './'})
+	return tsProject.src()
+		.pipe(tsProject())
+		.js
 		.pipe(closureCompiler({
 			compilation_level: 'SIMPLE', // TODO ADVANCED
 			warning_level: 'VERBOSE',
@@ -15,7 +19,9 @@ function compile() {
 }
 
 function compilePretty() {
-	return gulp.src('./src/aheui.js', {base: './'})
+	return tsProject.src()
+		.pipe(tsProject())
+		.js
 		.pipe(closureCompiler({
 			compilation_level: 'SIMPLE', // TODO ADVANCED
 			warning_level: 'VERBOSE',
