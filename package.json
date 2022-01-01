@@ -1,7 +1,7 @@
 {
-  "name": "aheui.js",
+  "name": "aheui",
   "version": "0.1.0",
-  "description": "Javascript Aheui interpreter",
+  "description": "Aheui interpreter for Javascript, with Typescript support!",
   "main": "dist/aheui.min.js",
   "types": "dist/aheui.d.ts",
   "directories": {
