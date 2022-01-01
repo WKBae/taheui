@@ -2,7 +2,8 @@
   "name": "aheui.js",
   "version": "0.1.0",
   "description": "Javascript Aheui interpreter",
-  "main": "src/aheui.ts",
+  "main": "dist/aheui.min.js",
+  "types": "dist/aheui.d.ts",
   "directories": {
     "example": "examples"
   },
