@@ -5,7 +5,7 @@ const fs = require('fs'),
 
 var script = ""
 var input = ""
-var scriptInput = true
+var stdinScript = true
 
 var scriptStarted = false
 function startScript() {
@@ -19,7 +19,7 @@ function startScript() {
 process.stdin.setEncoding('utf8')
 
 if(process.argv.length > 2) {
-	scriptInput = false
+	stdinScript = false
 	fs.readFile(process.argv[2], 'utf8', (err, data) => {
 		if(err) throw err
 		script = data
@@ -28,13 +28,13 @@ if(process.argv.length > 2) {
 }
 
 process.stdin.on('readable', () => {
-	if(scriptInput) {
+	if(stdinScript) {
 		const chunk = process.stdin.read()
 		if (chunk !== null) {
 			if(chunk.indexOf('\0') === -1) {
 				script += chunk
 			} else {
-				scriptInput = false
+				stdinScript = false
 
 				var spl = chunk.split('\0')
 				script += spl[0]
@@ -43,10 +43,11 @@ process.stdin.on('readable', () => {
 			}
 		}
 	}
-})
-
-process.stdin.on('end', () => {
-	startScript()
+}).on('end', () => {
+	if(stdinScript) {
+		stdinScript = false
+		startScript()
+	}
 })
 
 // TODO rewrite input functions, to use callback
