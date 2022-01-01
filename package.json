@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "webpack",
-    "test": "test/snippets-standard.sh"
+    "test": "npm run build && test/snippets-standard.sh"
   },
   "repository": {
     "type": "git",
