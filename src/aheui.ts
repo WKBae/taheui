@@ -1,7 +1,7 @@
-const cho = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
-const jung = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
-const jong = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
-const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4, 1, 3, 4, 3, 4, 4, 3]
+const cho = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'] as const
+const jung = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'] as const
+const jong = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'] as const
+const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4, 1, 3, 4, 3, 4, 4, 3] as const
 
 interface Storage {
 	push(value: number): void
@@ -115,15 +115,17 @@ class Queue implements Storage {
 	}
 }
 
-type Operation = (storage: Storage, argument: number) => boolean
+type Operation = (this: Aheui, storage: Storage, argument: number) => boolean
 
 /**
  * Return an operation which just calls the function given.
  * @param operation Operation function to execute
  * @returns Operation
  */
-function rawOperation(operation: (storage: Storage, argument: number) => (boolean | void)): Operation {
-	return (storage: Storage, argument: number) => operation(storage, argument) ?? true
+function rawOperation(operation: (this: Aheui, storage: Storage, argument: number) => (boolean | void)): Operation {
+	return function(this: Aheui, storage: Storage, argument: number) {
+		return operation.call(this, storage, argument) ?? true
+	}
 }
 
 /**
@@ -155,7 +157,7 @@ function popOperation<N extends number>(count: N, operation: (...args: Tuple<num
  */
 function popOperation<T, N extends number>(count: N, operation: (...args: Tuple<number, N>) => T, resultHandler: (storage: Storage, argument: T, value: number) => (boolean | void)): Operation
 
-function popOperation<T>(count: number, operation: (...args: number[]) => T, resultHandler: (storage: Storage, argument: T, value: number) => (boolean | void) = pushNumberHandler): Operation {
+function popOperation<T>(count: number, operation: (...args: number[]) => T, resultHandler: (this: Aheui, storage: Storage, argument: T, value: number) => (boolean | void) = pushNumberHandler): Operation {
 	// Fast path for frequent count values
 	if (count == 1) {
 		return function pop1Operate(stack, argument) {
@@ -163,7 +165,7 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 			if (one === undefined) {
 				return false
 			}
-			return resultHandler(stack, operation(one), argument) ?? true
+			return resultHandler.call(this, stack, operation(one), argument) ?? true
 		}
 	} else if (count == 2) {
 		return function pop2Operate(stack, argument) {
@@ -176,7 +178,7 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 				stack.append(two)
 				return false
 			}
-			return resultHandler(stack, operation(one, two), argument) ?? true
+			return resultHandler.call(this, stack, operation(one, two), argument) ?? true
 		}
 	} else {
 		return function popOperate(stack, argument) {
@@ -191,61 +193,31 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 				}
 				args[i] = value
 			}
-			return resultHandler(stack, operation.apply(null, args), argument) ?? true
+			return resultHandler.call(this, stack, operation.apply(null, args), argument) ?? true
 		}
 	}
 }
 
-class Cell {
-	private readonly _op: (storage: Storage, value: number) => boolean;
-	private readonly _dir: number
-	private readonly _argument: number
+/**
+ * Tuple of [Choseong, Jungseong, Jongseong] indices, or [Operation, Direction, Argument].
+ * Can be mapped into character with exported variables `cho`, `jung`, `jong`.
+ */
+type Syllable = [operation: number, direction: number, argument: number]
 
-	/**
-	 * Builds a cell with the given character
-	 * @param char Character representing a cell. If string or number(unicode codepoint) is passed, it will be parsed using Cell.parseChar
-	 * @param operations List of the operations per each 'Choseong'
-	 */
-	constructor(char: string | number | [number, number, number], operations: Operation[]) {
-		if (typeof char === 'string' || typeof char === 'number')
-			char = Cell.parseChar(char)
-		this._op = operations[char[0]]
-		this._dir = char[1]
-		this._argument = char[2]
-	}
-
-	/**
-	 * Execute the cell, performs operation execution, direction update, moving the plane.
-	 * This is not intended to run outside this library.
-	 * @param aheui Script plane to run on
-	 */
-	_run(aheui: Aheui) {
-		aheui._updateDirection(this._dir)
-
-		const success = this._op(aheui.stacks[aheui.currentStack], this._argument)
-		if (!success) {
-			aheui._updateDirection(19 /* ㅢ, reverse */)
-		}
-
-		aheui._followDirection()
-	}
-
-	/**
-	 * Parse a Korean character to the array of [Choseong(number), Jungseong(number), Jongseong(number)]
-	 * Any non-Korean or not-complete characters are treated as "애", a no-op character in Aheui
-	 * @param c A character or unicode codepoint to parse
-	 * @returns Tuple of [Choseong, Jungseong, Jongseong]
-	 */
-	static parseChar(c: string | number): [number, number, number] {
-		if (typeof c === 'string') c = c.charCodeAt(0)
-		if (c < 0xAC00 || c > 0xD7A3) return [11, 1, 0] // default, no-op character
-		c -= 0xAC00
-		return [c / 28 / 21 | 0, (c / 28 | 0) % 21, c % 28]
-	}
+/**
+ * Parse a Hangul character into Syllable tuple.
+ * If the given character is not a Hangul syllable, null is returned.
+ * @param c A character or unicode codepoint to parse
+ * @returns Tuple of [Choseong, Jungseong, Jongseong], or `null` if not a full Hangul syllable
+ */
+function parseChar(c: string | number): Syllable | null {
+	if (typeof c === 'string') c = c.charCodeAt(0)
+	if (c < 0xAC00 || c > 0xD7A3) return null
+	c -= 0xAC00
+	return [c / 28 / 21 | 0, (c / 28 | 0) % 21, c % 28]
 }
 
 const NO_OP = () => true
-const EMPTY_CELL = new Cell([0, 1, 0], [NO_OP])
 
 type NoArgEventHandler = (this: Aheui) => void
 type NumberEventHandler = (this: Aheui, value: number) => void
@@ -265,8 +237,14 @@ type AheuiEvents = {
  * Aheui script interpreter
  */
 class Aheui {
+	/**
+	 * Original script text
+	 */
 	readonly script: string
-	plane: Cell[][]
+	/**
+	 * Parsed `script` in [y][x] order. null if the character is not a Hangul syllable.
+	 */
+	readonly plane: readonly (readonly (Syllable | null)[])[]
 	private _callbacks: { [Event in keyof AheuiEvents]?: AheuiEvents[Event][] }
 
 	private _intIn: (this: Aheui) => number
@@ -286,6 +264,78 @@ class Aheui {
 	dx: number = 0
 	dy: number = 1
 
+	private static readonly _operations: readonly Operation[] = [
+		/* ㄱ */ NO_OP,
+		/* ㄲ */ NO_OP,
+		/* ㄴ */ popOperation(2, (a, b) => a / b | 0),
+		/* ㄷ */ popOperation(2, (a, b) => a + b),
+		/* ㄸ */ popOperation(2, (a, b) => a * b),
+		/* ㄹ */ popOperation(2, (a, b) => a % b),
+		/* ㅁ */ popOperation(1, (a) => a,
+			function(this: Aheui, stack, result, argument) {
+				if (argument === 21 /* ㅇ */) {
+					this.emit('integer', result)
+				} else if (argument === 27 /* ㅎ */) {
+					let char
+					if (result <= 0xFFFF || result > 0x10FFFF) {
+						char = String.fromCharCode(result)
+					} else { // build surrogate pair
+						result -= 0x10000
+						char = String.fromCharCode((result >> 10) + 0xD800, (result % 0x400) + 0xDC00)
+					}
+					this.emit('character', char)
+				}
+				return true
+			}),
+		/* ㅂ */ rawOperation(function(this: Aheui, stack, argument) {
+			if (argument === 21 /* ㅇ */) {
+				stack.push(this._intIn())
+			} else if (argument === 27 /* ㅎ */) {
+				const char = this._charIn()
+				stack.push(typeof char === 'string' ? char.charCodeAt(0) : char)
+			} else {
+				stack.push(jongCount[argument])
+			}
+		}),
+		/* ㅃ */ popOperation(1, (a) => a,
+			(stack, a) => {
+				if (stack.append) {
+					stack.append(a)
+					stack.append(a)
+				} else {
+					stack.push(a)
+					stack.push(a)
+				}
+			}),
+		/* ㅅ */ rawOperation(function(this: Aheui, stack, argument) {
+			this.currentStack = argument
+		}),
+		/* ㅆ */ popOperation(1, (a) => a,
+			function(this: Aheui, stack, result, argument) {
+				this.stacks[argument].push(result)
+			}),
+		/* ㅇ */ NO_OP,
+		/* ㅈ */ popOperation(2, (a, b) => a >= b ? 1 : 0),
+		/* ㅉ */ NO_OP,
+		/* ㅊ */ popOperation(1, (a) => a != 0,
+			function(this: Aheui, stack, result) {
+				if (!result) {
+					this.dx = -this.dx
+					this.dy = -this.dy
+				}
+			}),
+		/* ㅋ */ NO_OP,
+		/* ㅌ */ popOperation(2, (a, b) => a - b),
+		/* ㅍ */ popOperation(2, (a, b) => [b, a],
+			(stack, [b, a]) => {
+				stack.append(b)
+				stack.append(a)
+			}),
+		/* ㅎ */ rawOperation(function(this: Aheui, stack) {
+			this.exitCode = stack.pop() || 0
+		})
+	]
+
 	/**
 	 * Build an Aheui interpreter with the given script string.
 	 * @param script The Aheui script
@@ -295,86 +345,15 @@ class Aheui {
 
 		this._init()
 
-		const operations: Operation[] = [
-			/* ㄱ */ NO_OP,
-			/* ㄲ */ NO_OP,
-			/* ㄴ */ popOperation(2, (a, b) => a / b | 0),
-			/* ㄷ */ popOperation(2, (a, b) => a + b),
-			/* ㄸ */ popOperation(2, (a, b) => a * b),
-			/* ㄹ */ popOperation(2, (a, b) => a % b),
-			/* ㅁ */ popOperation(1, (a) => a,
-				(stack, result, argument) => {
-					if (argument === 21 /* ㅇ */) {
-						this.emit('integer', result)
-					} else if (argument === 27 /* ㅎ */) {
-						let char
-						if (result <= 0xFFFF || result > 0x10FFFF) {
-							char = String.fromCharCode(result)
-						} else { // build surrogate pair
-							result -= 0x10000
-							char = String.fromCharCode((result >> 10) + 0xD800, (result % 0x400) + 0xDC00)
-						}
-						this.emit('character', char)
-					}
-					return true
-				}),
-			/* ㅂ */ rawOperation((stack, argument) => {
-				if (argument === 21 /* ㅇ */) {
-					stack.push(this._intIn())
-				} else if (argument === 27 /* ㅎ */) {
-					const char = this._charIn()
-					stack.push(typeof char === 'string' ? char.charCodeAt(0) : char)
-				} else {
-					stack.push(jongCount[argument])
-				}
-			}),
-			/* ㅃ */ popOperation(1, (a) => a,
-				(stack, a) => {
-					if (stack.append) {
-						stack.append(a)
-						stack.append(a)
-					} else {
-						stack.push(a)
-						stack.push(a)
-					}
-				}),
-			/* ㅅ */ rawOperation((stack, argument) => {
-				this.currentStack = argument
-			}),
-			/* ㅆ */ popOperation(1, (a) => a,
-				(stack, result, argument) => {
-					this.stacks[argument].push(result)
-				}),
-			/* ㅇ */ NO_OP,
-			/* ㅈ */ popOperation(2, (a, b) => a >= b ? 1 : 0),
-			/* ㅉ */ NO_OP,
-			/* ㅊ */ popOperation(1, (a) => a != 0,
-				(stack, result) => {
-					if (!result) {
-						this.dx = -this.dx
-						this.dy = -this.dy
-					}
-				}),
-			/* ㅋ */ NO_OP,
-			/* ㅌ */ popOperation(2, (a, b) => a - b),
-			/* ㅍ */ popOperation(2, (a, b) => [b, a],
-				(stack, [b, a]) => {
-					stack.append(b)
-					stack.append(a)
-				}),
-			/* ㅎ */ rawOperation((stack) => {
-				this.exitCode = stack.pop() || 0
-			})
-		]
-
 		const lines = this.script.split(/\r?\n/)
-		this.plane = []
+		const plane: (Syllable | null)[][] = []
 		lines.forEach((line, i) => {
-			this.plane[i] = []
+			plane[i] = []
 			for (let j = 0; j < line.length; j++) {
-				this.plane[i][j] = new Cell(line.charCodeAt(j), operations)
+				plane[i][j] = parseChar(line.charCodeAt(j))
 			}
 		})
+		this.plane = plane;
 
 		this._callbacks = {}
 
@@ -422,10 +401,17 @@ class Aheui {
 		if (!this.running) {
 			this.emit('start')
 		}
-		if (this.plane[this.y] && this.plane[this.y][this.x])
-			this.plane[this.y][this.x]._run(this)
-		else
-			EMPTY_CELL._run(this)
+
+		const cell = this.plane[this.y]?.[this.x]
+		if (cell) {
+			this._updateDirection(cell[1])
+			const success = Aheui._operations[cell[0]].call(this, this.stacks[this.currentStack], cell[2])
+			if (!success) {
+				this._updateDirection(19 /* ㅢ, reverse */)
+			}
+		}
+		this._followDirection()
+
 		this.stepCount++
 		this.emit('step')
 		if (!this.running) {
@@ -498,7 +484,7 @@ class Aheui {
 	 * Update the direction vector according to the given Jungseong directive.
 	 * @param jung 0-based Jungseong of an instruction
 	 */
-	_updateDirection(jung: number) {
+	private _updateDirection(jung: number) {
 		switch (jung) {
 			case 0: /* ㅏ */
 				this.dx = 1
@@ -551,7 +537,7 @@ class Aheui {
 	/**
 	 * Moves along the plane by the direction vector.
 	 */
-	_followDirection() {
+	private _followDirection() {
 		this.x += this.dx
 		if (this.x < 0) {
 			this.x = this.plane[this.y].length - 1
