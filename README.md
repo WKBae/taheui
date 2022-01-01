@@ -12,16 +12,12 @@ Aheui.js는 `run()`, `stop()`, `step()`, `reset()` 제어 메소드와 상태(`'
 컴파일
 ------
 
-Aheui.js는 현재 하나의 파일을 모듈 단위로 나누는 작업을 진행 중에 있습니다. 이 파일들은 gulp로 Google Closure Compiler를 거쳐 압축된 한 파일로 만듭니다. 그 과정은 아래와 같습니다.
-
- * (gulp가 설치되어있지 않은 경우) `npm install gulp -g`로 gulp를 설치합니다.
- * `git clone https://github.com/WKBae/Aheui.js.git`으로 이 리포지터리를 받습니다.
- * `cd Aheui.js`로 받은 디렉토리로 이동합니다.
- * `npm install`을 실행해 의존 모듈들을 받습니다.
- * `gulp compile` 명령으로 컴파일을 시작합니다.
- * 잠시 기다리면 `dist/` 폴더에 `aheui.min.js` 파일이 생성됩니다.
- * ???
- * PROFIT!
+```bash
+git clone https://github.com/WKBae/Aheui.js.git
+cd Aheui.js
+npm install
+npm run build
+```
 
 
 문서

@@ -660,4 +660,9 @@ class Aheui {
 }
 
 export default Aheui;
-export {cho, jung, jong};
+export {
+	Aheui,
+	cho,
+	jung,
+	jong,
+};

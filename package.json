@@ -7,6 +7,7 @@
     "example": "examples"
   },
   "scripts": {
+    "build": "webpack",
     "test": "test/snippets-standard.sh"
   },
   "repository": {
@@ -21,9 +22,9 @@
   "homepage": "https://github.com/WKBae/aheui.js#readme",
   "devDependencies": {
     "@types/node": "^17.0.5",
-    "google-closure-compiler": "^20211201.0.0",
-    "gulp": "^4.0.2",
-    "gulp-typescript": "^6.0.0-alpha.1",
-    "typescript": "^4.5.4"
+    "typescript": "^4.5.4",
+    "ts-loader": "^9.2.6",
+    "webpack": "^5.65.0",
+    "webpack-cli": "^4.9.1"
   }
 }
