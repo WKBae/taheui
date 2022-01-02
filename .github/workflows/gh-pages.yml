@@ -13,7 +13,7 @@ jobs:
           node-version: '14'
       - name: Check out repository
         uses: actions/checkout@v2
-      - run: npm install
+      - run: npm ci
       - run: npm run build
       - name: Move minified js file
         run: mv dist/aheui.min.js dist/aheui.min.js.map examples/web/ && sed -i 's|../../dist/aheui.min.js|aheui.min.js|g' examples/web/index.html
