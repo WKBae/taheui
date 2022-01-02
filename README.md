@@ -1,6 +1,7 @@
 자바스크립트 기반 종합 아희 툴킷 Aheui.js
 =========================================
 [![Test status](https://github.com/WKBae/Aheui.js/actions/workflows/test.yml/badge.svg)](https://github.com/WKBae/Aheui.js/actions/workflows/test.yml)
+[![Web status](https://github.com/WKBae/Aheui.js/actions/workflows/gh-pages.yml/badge.svg)](https://aheui.bae.sh)
 
 아희는 [한글로 쓰는 난해한 프로그래밍 언어][aheui]입니다.
 

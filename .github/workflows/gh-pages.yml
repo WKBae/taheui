@@ -1,0 +1,26 @@
+name: Deploy Web
+on:
+  push:
+    branches:
+      - master
+jobs:
+  gh-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup node 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - run: npm install
+      - run: npm run build
+      - name: Move minified js file
+        run: mv dist/aheui.min.js dist/aheui.min.js.map examples/web/ && sed -i 's|../../dist/aheui.min.js|aheui.min.js|g' examples/web/index.html
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/master' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./examples/web
+
