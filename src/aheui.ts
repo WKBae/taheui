@@ -115,16 +115,31 @@ class Queue implements Storage {
 	}
 }
 
-type Operation = (this: Aheui, storage: Storage, argument: number) => boolean
+type Operation = (this: Aheui, storage: Storage, argument: number) => Promise<boolean> | boolean
 
 /**
- * Return an operation which just calls the function given.
+ * Simple Operation wrapper allowing void returns.
  * @param operation Operation function to execute
  * @returns Operation
  */
 function rawOperation(operation: (this: Aheui, storage: Storage, argument: number) => (boolean | void)): Operation {
 	return function(this: Aheui, storage: Storage, argument: number) {
 		return operation.call(this, storage, argument) ?? true
+	}
+}
+
+/**
+ * Operation wrapper with Promise(async) support allowing void returns.
+ * @param operation Operation function to execute
+ * @returns Operation
+ */
+function asyncOperation(operation: (this: Aheui, storage: Storage, argument: number) => (Promise<boolean | void> | boolean | void)): Operation {
+	return function(this: Aheui, storage: Storage, argument: number) {
+		const result = operation.call(this, storage, argument)
+		if (typeof result === 'object') {
+			return result.then(value => value ?? true)
+		}
+		return result ?? true
 	}
 }
 
@@ -247,8 +262,8 @@ class Aheui {
 	readonly plane: readonly (readonly (Syllable | null)[])[]
 	private _callbacks: { [Event in keyof AheuiEvents]?: AheuiEvents[Event][] }
 
-	private _intIn: (this: Aheui) => number
-	private _charIn: (this: Aheui) => (string | number)
+	private _intIn: (this: Aheui) => number | Promise<number>
+	private _charIn: (this: Aheui) => string | number | Promise<string | number>
 
 	stacks: Storage[] = []
 
@@ -287,11 +302,23 @@ class Aheui {
 				}
 				return true
 			}),
-		/* ㅂ */ rawOperation(function(this: Aheui, stack, argument) {
+		/* ㅂ */ asyncOperation(function(this: Aheui, stack, argument) {
+			// Minimize use of async/await, which always wrap function in Promise, for performance concern
 			if (argument === 21 /* ㅇ */) {
-				stack.push(this._intIn())
+				const num = this._intIn();
+				if (typeof num === 'object') {
+					return num.then((value) => {
+						stack.push(value)
+					})
+				}
+				stack.push(num)
 			} else if (argument === 27 /* ㅎ */) {
 				const char = this._charIn()
+				if (typeof char === 'object') {
+					return char.then((value) => {
+						stack.push(typeof value === 'string' ? value.charCodeAt(0) : value)
+					})
+				}
 				stack.push(typeof char === 'string' ? char.charCodeAt(0) : char)
 			} else {
 				stack.push(jongCount[argument])
@@ -396,7 +423,7 @@ class Aheui {
 	/**
 	 * Execute a single cell.
 	 */
-	step() {
+	step(): void | Promise<void> {
 		if (this.exitCode !== null) return
 		if (!this.running) {
 			this.emit('start')
@@ -405,7 +432,25 @@ class Aheui {
 		const cell = this.plane[this.y]?.[this.x]
 		if (cell) {
 			this._updateDirection(cell[1])
-			const success = Aheui._operations[cell[0]].call(this, this.stacks[this.currentStack], cell[2])
+			let success = Aheui._operations[cell[0]].call(this, this.stacks[this.currentStack], cell[2])
+			if (typeof success === 'object') {
+				return success.then((asyncSuccess) => {
+					if (!asyncSuccess) {
+						this._updateDirection(19 /* ㅢ, reverse */)
+					}
+					this._followDirection()
+
+					this.stepCount++
+					this.emit('step')
+					if (!this.running) {
+						if (this.exitCode === null) {
+							this.emit('stop')
+						} else {
+							this.emit('end', this.exitCode)
+						}
+					}
+				})
+			}
 			if (!success) {
 				this._updateDirection(19 /* ㅢ, reverse */)
 			}
@@ -427,7 +472,7 @@ class Aheui {
 	 * Start execution from the last stopped position(or the beginning)
 	 * @param batchSize Size of the batch, the number of cells to execute per timer tick. 0 to run synchronously.
 	 */
-	run(batchSize?: number) {
+	async run(batchSize?: number) {
 		if (this.running) return
 		this.running = true
 
@@ -436,11 +481,14 @@ class Aheui {
 		if (typeof batchSize === 'number' && batchSize > 0) {
 			this._batch(batchSize)
 		} else if (batchSize === 0) {
-			while (/*this.running &&*/ this.exitCode === null) {
-				this.step()
+			while (this.running && this.exitCode === null) {
+				const ret = this.step()
+				if (typeof ret === 'object') await ret
 			}
-			this.running = false
-			this.emit('end', this.exitCode)
+			if (this.running) {
+				this.running = false
+				this.emit('end', this.exitCode!)
+			}
 		} else {
 			this._batch(10000)
 		}
@@ -452,11 +500,12 @@ class Aheui {
 	 */
 	private _batch(count: number) {
 		if (this.running && this._interval) clearInterval(this._interval)
-		this._interval = setInterval(() => {
+		this._interval = setInterval(async () => {
 			if (!this.running) return
 
 			for (let i = 0; i < count && this.exitCode === null; i++) {
-				this.step()
+				const ret = this.step()
+				if (typeof ret === 'object') await ret
 			}
 
 			if (this.exitCode !== null) {
@@ -626,7 +675,7 @@ class Aheui {
 	 * @param inputFunc Function returning integer
 	 * @returns Old integer input function
 	 */
-	setIntegerInput(inputFunc: (this: Aheui) => number) {
+	setIntegerInput(inputFunc: (this: Aheui) => number | Promise<number>) {
 		const old = this._intIn
 		this._intIn = inputFunc
 		return old
@@ -638,7 +687,7 @@ class Aheui {
 	 * @param inputFunc Function returning a character, or a unicode codepoint
 	 * @returns Old character input function
 	 */
-	setCharacterInput(inputFunc: (this: Aheui) => (string | number)) {
+	setCharacterInput(inputFunc: (this: Aheui) => string | number | Promise<string | number>) {
 		const old = this._charIn
 		this._charIn = inputFunc
 		return old
