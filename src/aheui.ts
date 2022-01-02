@@ -126,7 +126,11 @@ type Operation = (this: Aheui, storage: Storage, argument: number) => MaybePromi
  */
 function rawOperation(operation: (this: Aheui, storage: Storage, argument: number) => (boolean | number | void)): Operation {
 	return function(this: Aheui, storage: Storage, argument: number) {
-		return operation.call(this, storage, argument) ?? true
+		const ret = operation.call(this, storage, argument)
+		if (ret === 0) {
+			return 0
+		}
+		return ret || true
 	}
 }
 
@@ -139,9 +143,9 @@ function asyncOperation(operation: (this: Aheui, storage: Storage, argument: num
 	return function(this: Aheui, storage: Storage, argument: number) {
 		const result = operation.call(this, storage, argument)
 		if (typeof result === 'object') {
-			return result.then(value => value ?? true)
+			return result.then(value => value || true)
 		}
-		return result ?? true
+		return result || true
 	}
 }
 
@@ -182,7 +186,7 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 			if (one === null) {
 				return false
 			}
-			return resultHandler.call(this, stack, operation(one), argument) ?? true
+			return resultHandler.call(this, stack, operation(one), argument) || true
 		}
 	} else if (count == 2) {
 		return function pop2Operate(stack, argument) {
@@ -195,7 +199,7 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 				stack.append(two)
 				return false
 			}
-			return resultHandler.call(this, stack, operation(one, two), argument) ?? true
+			return resultHandler.call(this, stack, operation(one, two), argument) || true
 		}
 	} else {
 		return function popOperate(stack, argument) {
@@ -210,7 +214,7 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 				}
 				args[i] = value
 			}
-			return resultHandler.call(this, stack, operation.apply(null, args), argument) ?? true
+			return resultHandler.call(this, stack, operation.apply(null, args), argument) || true
 		}
 	}
 }
