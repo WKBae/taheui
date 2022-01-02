@@ -1,5 +1,5 @@
 {
-  "name": "aheui",
+  "name": "aheui.js",
   "version": "0.1.0",
   "description": "Aheui interpreter for Javascript, with Typescript support!",
   "main": "dist/aheui.min.js",
