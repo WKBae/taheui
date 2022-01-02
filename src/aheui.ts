@@ -271,7 +271,7 @@ class Aheui {
 	exitCode: number | null = null
 	stepCount: number = 0
 	running = false
-	private _interval: ReturnType<typeof setTimeout> | null = null
+	private _runIndex: number = 0
 
 	x: number = 0
 	y: number = 0
@@ -403,7 +403,7 @@ class Aheui {
 		this.exitCode = null
 		this.stepCount = 0
 		this.running = false
-		this._interval = null
+		this._runIndex += 1 // Resetting this to 0 can mess up ongoing loops
 
 		this.x = 0
 		this.y = 0
@@ -471,50 +471,74 @@ class Aheui {
 	/**
 	 * Start execution from the last stopped position(or the beginning)
 	 * @param batchSize Size of the batch, the number of cells to execute per timer tick. 0 to run synchronously.
+	 * @returns Promise resolving script exit code on completion. Rejected when cancelled.
 	 */
-	async run(batchSize?: number) {
-		if (this.running) return
+	async run(batchSize: number = 10000): Promise<number> {
+		if (this.running) this.stop()
 		this.running = true
 
 		this.emit('start')
 
-		if (typeof batchSize === 'number' && batchSize > 0) {
-			this._batch(batchSize)
-		} else if (batchSize === 0) {
-			while (this.running && this.exitCode === null) {
+		if (batchSize === 0) {
+			const runIdx = ++this._runIndex
+			while (this.exitCode === null) {
 				const ret = this.step()
-				if (typeof ret === 'object') await ret
+				if (typeof ret === 'object') {
+					await ret
+					// Case optimization: if not awaited, _runIndex will not change in single-threaded JS
+					if (this._runIndex !== runIdx) {
+						return Promise.reject()
+					}
+				}
 			}
-			if (this.running) {
-				this.running = false
-				this.emit('end', this.exitCode!)
-			}
+			this.running = false
+			this.emit('end', this.exitCode)
+			return this.exitCode
 		} else {
-			this._batch(10000)
+			const exitCode = await this._batch(batchSize)
+			this.running = false
+			this.emit('end', exitCode)
+			return exitCode
 		}
 	}
 
 	/**
 	 * Setup batches with the given count
 	 * @param count Number of cell runs in a batch
+	 * @returns Promise resolving script exit code on completion. Rejected when cancelled.
 	 */
-	private _batch(count: number) {
-		if (this.running && this._interval) clearInterval(this._interval)
-		this._interval = setInterval(async () => {
-			if (!this.running) return
+	private _batch(count: number): Promise<number> {
+		const runIdx = ++this._runIndex
+		return new Promise((resolve, reject) => {
+			// Schedule job using MessageChannel since setTimeout/setInterval has minimum delay of 4ms
+			// https://stackoverflow.com/a/61339234
+			const ch = new MessageChannel()
+			ch.port1.onmessage = async () => {
+				if (this._runIndex !== runIdx) {
+					reject()
+					return
+				}
 
-			for (let i = 0; i < count && this.exitCode === null; i++) {
-				const ret = this.step()
-				if (typeof ret === 'object') await ret
-			}
+				for (let i = 0; i < count && this.exitCode === null; i++) {
+					const ret = this.step()
+					if (typeof ret === 'object') {
+						await ret
+						// Case optimization: if not awaited, _runIndex will not change in single-threaded JS
+						if (this._runIndex !== runIdx) {
+							reject()
+							return
+						}
+					}
+				}
 
-			if (this.exitCode !== null) {
-				this.running = false
-				if (this._interval) clearInterval(this._interval)
-				this._interval = null
-				this.emit('end', this.exitCode)
+				if (this.exitCode !== null) {
+					resolve(this.exitCode)
+					return
+				}
+				ch.port2.postMessage(null)
 			}
-		}, 0)
+			ch.port2.postMessage(null)
+		})
 	}
 
 	/**
@@ -523,7 +547,7 @@ class Aheui {
 	 */
 	stop() {
 		if (this.running) {
-			if (this._interval) clearInterval(this._interval)
+			this._runIndex += 1
 			this.running = false
 			this.emit('stop')
 		}
