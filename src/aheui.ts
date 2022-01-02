@@ -116,14 +116,15 @@ class Queue implements Storage {
 	}
 }
 
-type Operation = (this: Aheui, storage: Storage, argument: number) => Promise<boolean> | boolean
+type MaybePromise<T> = Promise<T> | T
+type Operation = (this: Aheui, storage: Storage, argument: number) => MaybePromise<boolean | number>
 
 /**
  * Simple Operation wrapper allowing void returns.
  * @param operation Operation function to execute
  * @returns Operation
  */
-function rawOperation(operation: (this: Aheui, storage: Storage, argument: number) => (boolean | void)): Operation {
+function rawOperation(operation: (this: Aheui, storage: Storage, argument: number) => (boolean | number | void)): Operation {
 	return function(this: Aheui, storage: Storage, argument: number) {
 		return operation.call(this, storage, argument) ?? true
 	}
@@ -134,7 +135,7 @@ function rawOperation(operation: (this: Aheui, storage: Storage, argument: numbe
  * @param operation Operation function to execute
  * @returns Operation
  */
-function asyncOperation(operation: (this: Aheui, storage: Storage, argument: number) => (Promise<boolean | void> | boolean | void)): Operation {
+function asyncOperation(operation: (this: Aheui, storage: Storage, argument: number) => (MaybePromise<boolean | void>)): Operation {
 	return function(this: Aheui, storage: Storage, argument: number) {
 		const result = operation.call(this, storage, argument)
 		if (typeof result === 'object') {
@@ -263,13 +264,12 @@ class Aheui {
 	readonly plane: readonly (readonly (Syllable | null)[])[]
 	private _callbacks: { [Event in keyof AheuiEvents]?: AheuiEvents[Event][] }
 
-	private _intIn: (this: Aheui) => number | Promise<number>
-	private _charIn: (this: Aheui) => string | number | Promise<string | number>
+	private _intIn: (this: Aheui) => MaybePromise<number>
+	private _charIn: (this: Aheui) => MaybePromise<string | number>
 
 	stacks: Storage[] = []
 
 	currentStack: number = 0
-	exitCode: number | null = null
 	stepCount: number = 0
 	running = false
 	private _runIndex: number = 0
@@ -360,7 +360,7 @@ class Aheui {
 				stack.append(a)
 			}),
 		/* ㅎ */ rawOperation(function(this: Aheui, stack) {
-			this.exitCode = stack.pop() || 0
+			return stack.pop() || 0
 		})
 	]
 
@@ -401,7 +401,6 @@ class Aheui {
 		}
 
 		this.currentStack = 0
-		this.exitCode = null
 		this.stepCount = 0
 		this.running = false
 		this._runIndex += 1 // Resetting this to 0 can mess up ongoing loops
@@ -424,8 +423,8 @@ class Aheui {
 	/**
 	 * Execute a single cell.
 	 */
-	step(): void | Promise<void> {
-		if (this.exitCode !== null) return
+	step(): MaybePromise<number | void> {
+		// !this.running means this step() call was not by run() or _batch(); called from external code
 		if (!this.running) {
 			this.emit('start')
 		}
@@ -433,27 +432,31 @@ class Aheui {
 		const cell = this.plane[this.y]?.[this.x]
 		if (cell) {
 			this._updateDirection(cell[1])
-			let success = Aheui._operations[cell[0]].call(this, this.stacks[this.currentStack], cell[2])
+			const success = Aheui._operations[cell[0]].call(this, this.stacks[this.currentStack], cell[2])
 			if (typeof success === 'object') {
 				return success.then((asyncSuccess) => {
-					if (!asyncSuccess) {
+					if (asyncSuccess === false) {
 						this._updateDirection(19 /* ㅢ, reverse */)
+					} else if (asyncSuccess !== true) {
+						const exitCode = asyncSuccess
+						this.emit('end', exitCode)
+						return exitCode
 					}
 					this._followDirection()
 
 					this.stepCount++
 					this.emit('step')
 					if (!this.running) {
-						if (this.exitCode === null) {
-							this.emit('stop')
-						} else {
-							this.emit('end', this.exitCode)
-						}
+						this.emit('stop')
 					}
 				})
 			}
-			if (!success) {
+			if (success === false) {
 				this._updateDirection(19 /* ㅢ, reverse */)
+			} else if (success !== true) {
+				const exitCode = success
+				this.emit('end', exitCode)
+				return exitCode
 			}
 		}
 		this._followDirection()
@@ -461,11 +464,7 @@ class Aheui {
 		this.stepCount++
 		this.emit('step')
 		if (!this.running) {
-			if (this.exitCode === null) {
-				this.emit('stop')
-			} else {
-				this.emit('end', this.exitCode)
-			}
+			this.emit('stop')
 		}
 	}
 
@@ -480,27 +479,32 @@ class Aheui {
 
 		this.emit('start')
 
+		let exitCode
 		if (batchSize === 0) {
 			const runIdx = ++this._runIndex
-			while (this.exitCode === null) {
+			while (true) {
 				const ret = this.step()
 				if (typeof ret === 'object') {
-					await ret
+					exitCode = await ret
+					if (typeof exitCode === 'number') {
+						break
+					}
 					// Case optimization: if not awaited, _runIndex will not change in single-threaded JS
 					if (this._runIndex !== runIdx) {
 						return Promise.reject()
 					}
+				} else if (typeof ret === 'number') {
+					exitCode = ret
+					break
 				}
 			}
-			this.running = false
-			this.emit('end', this.exitCode)
-			return this.exitCode
 		} else {
-			const exitCode = await this._batch(batchSize)
-			this.running = false
-			this.emit('end', exitCode)
-			return exitCode
+			exitCode = await this._batch(batchSize)
 		}
+
+		this.running = false
+		this.emit('end', exitCode)
+		return exitCode
 	}
 
 	/**
@@ -520,22 +524,25 @@ class Aheui {
 					return
 				}
 
-				for (let i = 0; i < count && this.exitCode === null; i++) {
+				for (let i = 0; i < count; i++) {
 					const ret = this.step()
 					if (typeof ret === 'object') {
-						await ret
+						const exitCode = await ret
+						if (typeof exitCode === 'number') {
+							resolve(exitCode)
+							return
+						}
 						// Case optimization: if not awaited, _runIndex will not change in single-threaded JS
 						if (this._runIndex !== runIdx) {
 							reject()
 							return
 						}
+					} else if (typeof ret === 'number') {
+						resolve(ret)
+						return
 					}
 				}
 
-				if (this.exitCode !== null) {
-					resolve(this.exitCode)
-					return
-				}
 				ch.port2.postMessage(null)
 			}
 			ch.port2.postMessage(null)
@@ -700,7 +707,7 @@ class Aheui {
 	 * @param inputFunc Function returning integer
 	 * @returns Old integer input function
 	 */
-	setIntegerInput(inputFunc: (this: Aheui) => number | Promise<number>) {
+	setIntegerInput(inputFunc: (this: Aheui) => MaybePromise<number>) {
 		const old = this._intIn
 		this._intIn = inputFunc
 		return old
@@ -712,7 +719,7 @@ class Aheui {
 	 * @param inputFunc Function returning a character, or a unicode codepoint
 	 * @returns Old character input function
 	 */
-	setCharacterInput(inputFunc: (this: Aheui) => string | number | Promise<string | number>) {
+	setCharacterInput(inputFunc: (this: Aheui) => MaybePromise<string | number>) {
 		const old = this._charIn
 		this._charIn = inputFunc
 		return old
