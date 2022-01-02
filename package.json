@@ -2,7 +2,16 @@
   "name": "taheui",
   "version": "0.2.0",
   "description": "Aheui interpreter for Javascript, with Typescript support!",
-  "keywords": ["aheui", "아희", "typescript", "interpreter", "esoteric", "language", "hangul", "korean"],
+  "keywords": [
+    "aheui",
+    "아희",
+    "typescript",
+    "interpreter",
+    "esoteric",
+    "language",
+    "hangul",
+    "korean"
+  ],
   "main": "dist/aheui.min.js",
   "types": "dist/aheui.d.ts",
   "scripts": {
@@ -20,9 +29,8 @@
   },
   "homepage": "https://github.com/WKBae/taheui#readme",
   "devDependencies": {
-    "@types/node": "^17.0.5",
-    "typescript": "^4.5.4",
     "ts-loader": "^9.2.6",
+    "typescript": "^4.5.4",
     "webpack": "^5.65.0",
     "webpack-cli": "^4.9.1"
   }
