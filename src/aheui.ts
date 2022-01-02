@@ -6,7 +6,7 @@ const jongCount = [0, 2, 4, 4, 2, 5, 5, 3, 5, 7, 9, 9, 7, 9, 9, 8, 4, 4, 6, 2, 4
 interface Storage {
 	push(value: number): void
 
-	pop(): number | undefined
+	pop(): number | null
 
 	append(value: number): void
 
@@ -30,8 +30,9 @@ class Stack implements Storage {
 	 * Pop a number from the stack. Returns `undefined` if the stack is empty.
 	 * @returns Popped value
 	 */
-	pop(): number | undefined {
-		return this._items.pop()
+	pop(): number | null {
+		if (this._items.length === 0) return null
+		return this._items.pop()!
 	}
 
 	/**
@@ -86,14 +87,14 @@ class Queue implements Storage {
 	 * Pulls a number from the queue. Returns `undefined` if the queue is empty
 	 * @return Pulled value
 	 */
-	pop(): number | undefined {
+	pop(): number | null {
 		if (this._head) {
 			const val = this._head[0]
 			this._head = this._head[1]
 			if (!this._head) this._tail = null
 			return val
 		} else {
-			return undefined
+			return null
 		}
 	}
 
@@ -177,7 +178,7 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 	if (count == 1) {
 		return function pop1Operate(stack, argument) {
 			const one = stack.pop()
-			if (one === undefined) {
+			if (one === null) {
 				return false
 			}
 			return resultHandler.call(this, stack, operation(one), argument) ?? true
@@ -185,11 +186,11 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 	} else if (count == 2) {
 		return function pop2Operate(stack, argument) {
 			const two = stack.pop()
-			if (two === undefined) {
+			if (two === null) {
 				return false
 			}
 			const one = stack.pop()
-			if (one === undefined) {
+			if (one === null) {
 				stack.append(two)
 				return false
 			}
@@ -200,7 +201,7 @@ function popOperation<T>(count: number, operation: (...args: number[]) => T, res
 			const args: number[] = []
 			for (let i = count - 1; i >= 0; i--) {
 				const value = stack.pop()
-				if (value === undefined) {
+				if (value === null) {
 					for (i++; i < count; i++) {
 						stack.append(args[i])
 					}
