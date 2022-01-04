@@ -1,6 +1,6 @@
 타희 taheui - 타입스크립트 아희 인터프리터
 =========================================
-[![Test status](https://github.com/WKBae/taheui/actions/workflows/test.yml/badge.svg)](https://github.com/WKBae/taheui/actions/workflows/test.yml)
+[![Test & Publish status](https://github.com/WKBae/taheui/actions/workflows/publish.yml/badge.svg)](https://github.com/WKBae/taheui/actions/workflows/publish.yml)
 [![Web status](https://github.com/WKBae/taheui/actions/workflows/gh-pages.yml/badge.svg)](https://aheui.bae.sh)
 
 [Example Page](https://aheui.bae.sh)

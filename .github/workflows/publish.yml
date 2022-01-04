@@ -1,0 +1,19 @@
+name: Test & Publish
+on: [push]
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup node 14
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: npm ci
+      - run: npm test
+      - uses: JS-DevTools/npm-publish@0f451a94170d1699fd50710966d48fb26194d939
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
