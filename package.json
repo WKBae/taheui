@@ -1,6 +1,6 @@
 {
   "name": "taheui",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Aheui interpreter for Javascript, with Typescript support!",
   "keywords": [
     "aheui",
